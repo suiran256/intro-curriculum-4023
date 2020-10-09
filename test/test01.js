@@ -11,8 +11,8 @@ const Schedule = require('../models/schedule');
 const Candidate = require('../models/candidate');
 const Availability = require('../models/availability');
 const Comment = require('../models/comment');
-const { get } = require('jquery');
-const { resolve } = require('path');
+const deleteScheduleAggregate = require('../routes/schedules')
+  .deleteScheduleAggregate;
 
 describe('/', () => {
   before(() => {
@@ -80,22 +80,26 @@ describe('/schedules', () => {
     passportStub.logout();
     passportStub.uninstall(app);
   });
-  const promiseGetScheduleNew = new Promise((resolve, reject) => {
-    request(app)
-      .get('/schedules/new')
-      .end((err, res) => {
-        const csrf = res.text.match(
-          /<input type="hidden" name="_csrf" value="(.*?)">/
-        )[1];
-        const setCookie = res.headers['set-cookie'];
-        if (err) return reject(err);
-        resolve({ csrf: csrf, setCookie: setCookie });
-      });
-  });
-  const promiseCreateSchedule = (vars) => {
+
+  const promiseGetScheduleNew = function () {
     return new Promise((resolve, reject) => {
       request(app)
-        .put('/schedules')
+        .get('/schedules/new')
+        .end((err, res) => {
+          const csrf = res.text.match(
+            /<input type="hidden" name="_csrf" value="(.*?)">/
+          )[1];
+          const setCookie = res.headers['set-cookie'];
+          if (err) return reject(err);
+          resolve({ csrf: csrf, setCookie: setCookie });
+        });
+    });
+  };
+
+  const promiseCreateSchedule = function (vars) {
+    return new Promise((resolve, reject) => {
+      request(app)
+        .post('/schedules')
         .set('cookie', vars.setCookie)
         .send({
           scheduleName: 'scheduleName1',
@@ -107,17 +111,12 @@ describe('/schedules', () => {
         .expect(302)
         .end((err, res) => {
           if (err) reject(err);
-          resolve(vars);
+          resolve();
         });
     });
   };
 
   it('createSchedule', (done) => {
-    promiseGetScheduleNew
-      .then((vars) => {
-        return promiseCreateSchedule(vars);
-      })
-      .then(done)
-      .catch(done);
+    promiseGetScheduleNew().then(promiseCreateSchedule).then(done).catch(done);
   });
 });
