@@ -11,6 +11,7 @@ const Schedule = require('../models/schedule');
 const Candidate = require('../models/candidate');
 const Availability = require('../models/availability');
 const Comment = require('../models/comment');
+const { resolve } = require('path');
 const deleteScheduleAggregate = require('../routes/schedules')
   .deleteScheduleAggregate;
 
@@ -91,32 +92,55 @@ describe('/schedules', () => {
           )[1];
           const setCookie = res.headers['set-cookie'];
           if (err) return reject(err);
-          resolve({ csrf: csrf, setCookie: setCookie });
+          resolve({ res: res, csrf: csrf });
         });
     });
   };
 
-  const promiseCreateSchedule = function (vars) {
+  const promiseDisplayScheduleNew = function ({ res }) {
+    return new Promise((resolve, reject) => {
+      const requestPath = res.headers.location;
+      request(app)
+        .get(requestPath)
+        .expect(/scheduleName1/)
+        .expect(200)
+        .end((err, res) => {
+          if (err) reject(err);
+          resolve({ res: res, requestPath: requestPath });
+        });
+    });
+  };
+
+  const promiseCreateSchedule = function ({ res, csrf }) {
     return new Promise((resolve, reject) => {
       request(app)
         .post('/schedules')
-        .set('cookie', vars.setCookie)
+        .set('cookie', res.headers['set-cookie'])
         .send({
           scheduleName: 'scheduleName1',
           memo: 'memo1',
           candidates: 'can11can12',
-          _csrf: vars.csrf,
+          _csrf: csrf,
         })
         .expect('Location', /schedules/)
         .expect(302)
         .end((err, res) => {
+          //console.log(res);
           if (err) reject(err);
-          resolve();
+          resolve({ res: res });
         });
     });
   };
 
   it('createSchedule', (done) => {
-    promiseGetScheduleNew().then(promiseCreateSchedule).then(done).catch(done);
+    User.upsert({ userId: 0, username: 'testuser' })
+      .then(promiseGetScheduleNew)
+      .then(promiseCreateSchedule)
+      .then(promiseDisplayScheduleNew)
+      .then(({ requestPath }) => {
+        const scheduleId = requestPath.match(/schedules\/(.*\/*?)/)[1];
+        deleteScheduleAggregate(scheduleId, done);
+      })
+      .catch(done);
   });
 });
