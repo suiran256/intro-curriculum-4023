@@ -138,7 +138,7 @@ const promiseUpdateComment = ({ scheduleId }) => {
       .post(`/schedules/${scheduleId}/users/${0}/comments`)
       .send({ comment: 'comment1' })
       .expect('{"status":"OK","comment":"comment1"}')
-      .end((err, res) => {
+      .end((err) => {
         if (err) reject(err);
         Comment.findAll({ where: { scheduleId: scheduleId } })
           .then((comments) => {
@@ -207,7 +207,7 @@ const promiseEditSchedule = ({ scheduleId }) => {
             candidates: 'can2',
             _csrf: csrf,
           })
-          .end((err, res) => {
+          .end((err) => {
             if (err) reject(err);
             Schedule.findByPk(scheduleId)
               .then((schedule) => {
@@ -264,7 +264,7 @@ const promiseDeleteSchedule = ({ scheduleId: scheduleId }) => {
           .post(`/schedules/${scheduleId}?delete=1`)
           .set('cookie', res.headers['set-cookie'])
           .send({ _csrf: csrf })
-          .end((err, res) => {
+          .end((err) => {
             if (err) reject(err);
             const p1 = Schedule.findByPk(scheduleId).then((schedule) => {
               assert.strictEqual(!schedule, true);
