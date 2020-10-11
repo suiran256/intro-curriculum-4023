@@ -1,5 +1,5 @@
 /* eslint-env mocha */
-//* eslint-disable no-unused-vars */
+/* eslint-disable no-unused-vars */
 'use strict';
 const request = require('supertest');
 const passportStub = require('passport-stub');
