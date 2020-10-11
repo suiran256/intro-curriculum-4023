@@ -57,13 +57,13 @@ describe('/logout', () => {
 });
 
 const promiseCreateSchedule = function () {
-  return new Promise((resolve, refuse) => {
+  return new Promise((resolve, reject) => {
     User.upsert({ userId: 0, username: 'testuser' })
       .then(() => {
         request(app)
           .get('/schedules/new')
           .end((err, res) => {
-            if (err) refuse(err);
+            if (err) reject(err);
             const setCookie = res.headers['set-cookie'];
             const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
             request(app)
@@ -78,7 +78,7 @@ const promiseCreateSchedule = function () {
               .expect('Location', /schedules/)
               .expect(302)
               .end((err, res) => {
-                if (err) refuse(err);
+                if (err) reject(err);
                 const schedulePath = res.headers.location;
                 const scheduleId = schedulePath.match(
                   /schedules\/(.*?)(\/|$)/
@@ -91,7 +91,7 @@ const promiseCreateSchedule = function () {
                   .expect(/can1/)
                   .expect(200)
                   .end((err) => {
-                    if (err) refuse(err);
+                    if (err) reject(err);
                     resolve({
                       scheduleId: scheduleId,
                     });
@@ -99,12 +99,12 @@ const promiseCreateSchedule = function () {
               });
           });
       })
-      .catch(refuse);
+      .catch(reject);
   });
 };
 
 const promiseUpdateAvailability = function ({ scheduleId }) {
-  return new Promise((resolve, refuse) => {
+  return new Promise((resolve, reject) => {
     Candidate.findOne({ where: { scheduleId: scheduleId } })
       .then((candidate) => {
         request(app)
@@ -116,39 +116,39 @@ const promiseUpdateAvailability = function ({ scheduleId }) {
           .send({ availability: 2 })
           .expect('{"status":"OK","availability":2}')
           .end((err) => {
-            if (err) refuse(err);
+            if (err) reject(err);
             Availability.findAll({ where: { scheduleId: scheduleId } })
               .then((availabilities) => {
                 assert.strictEqual(availabilities.length, 1);
                 assert.strictEqual(availabilities[0].availability, 2);
 
-                if (err) refuse(err);
+                if (err) reject(err);
                 resolve({ scheduleId: scheduleId });
               })
-              .catch(refuse);
+              .catch(reject);
           });
       })
-      .catch(refuse);
+      .catch(reject);
   });
 };
 
 const promiseUpdateComment = ({ scheduleId }) => {
-  return new Promise((resolve, refuse) => {
+  return new Promise((resolve, reject) => {
     request(app)
       .post(`/schedules/${scheduleId}/users/${0}/comments`)
       .send({ comment: 'comment1' })
       .expect('{"status":"OK","comment":"comment1"}')
       .end((err, res) => {
-        if (err) refuse(err);
+        if (err) reject(err);
         Comment.findAll({ where: { scheduleId: scheduleId } })
           .then((comments) => {
             assert.strictEqual(comments.length, 1);
             assert.strictEqual(comments[0].comment, 'comment1');
 
-            if (err) refuse(err);
+            if (err) reject(err);
             resolve({ scheduleId: scheduleId });
           })
-          .catch(refuse);
+          .catch(reject);
       });
   });
 };
@@ -191,11 +191,11 @@ describe('/schedules', () => {
 });
 
 const promiseEditSchedule = ({ scheduleId }) => {
-  return new Promise((resolve, refuse) => {
+  return new Promise((resolve, reject) => {
     request(app)
       .get(`/schedules/${scheduleId}/edit`)
       .end((err, res) => {
-        if (err) refuse(err);
+        if (err) reject(err);
         const setCookie = res.headers['set-cookie'];
         const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
         request(app)
@@ -208,7 +208,7 @@ const promiseEditSchedule = ({ scheduleId }) => {
             _csrf: csrf,
           })
           .end((err, res) => {
-            if (err) refuse(err);
+            if (err) reject(err);
             Schedule.findByPk(scheduleId)
               .then((schedule) => {
                 assert.strictEqual(schedule.scheduleName, 'scheduleName1kai');
@@ -222,12 +222,12 @@ const promiseEditSchedule = ({ scheduleId }) => {
                     assert.strictEqual(candidates[0].candidateName, 'can1');
                     assert.strictEqual(candidates[1].candidateName, 'can2');
 
-                    if (err) refuse(err);
+                    if (err) reject(err);
                     resolve({ scheduleId: scheduleId });
                   })
-                  .catch(refuse);
+                  .catch(reject);
               })
-              .catch(refuse);
+              .catch(reject);
           });
       });
   });
@@ -254,18 +254,18 @@ describe('/schedules/:scheduleId?edit=1', () => {
 });
 
 const promiseDeleteSchedule = ({ scheduleId: scheduleId }) => {
-  return new Promise((resolve, refuse) => {
+  return new Promise((resolve, reject) => {
     request(app)
       .get(`/schedules/${scheduleId}/edit`)
       .end((err, res) => {
-        if (err) refuse(err);
+        if (err) reject(err);
         const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
         request(app)
           .post(`/schedules/${scheduleId}?delete=1`)
           .set('cookie', res.headers['set-cookie'])
           .send({ _csrf: csrf })
           .end((err, res) => {
-            if (err) refuse(err);
+            if (err) reject(err);
             const p1 = Schedule.findByPk(scheduleId).then((schedule) => {
               assert.strictEqual(!schedule, true);
             });
@@ -286,10 +286,10 @@ const promiseDeleteSchedule = ({ scheduleId: scheduleId }) => {
             });
             Promise.all([p1, p2, p3, p4])
               .then(() => {
-                if (err) refuse(err);
+                if (err) reject(err);
                 resolve();
               })
-              .catch(refuse);
+              .catch(reject);
           });
       });
   });
