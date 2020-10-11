@@ -56,54 +56,57 @@ describe('/logout', () => {
   });
 });
 
-const promiseCreateSchedule = function (done) {
+const promiseCreateSchedule = function () {
   return new Promise((resolve, refuse) => {
-    User.upsert({ userId: 0, username: 'testuser' }).then(() => {
-      request(app)
-        .get('/schedules/new')
-        .end((err, res) => {
-          const setCookie = res.headers['set-cookie'];
-          const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
-          request(app)
-            .post('/schedules')
-            .set('cookie', setCookie)
-            .send({
-              scheduleName: 'scheduleName1',
-              memo: 'memo1',
-              candidates: 'can1',
-              _csrf: csrf,
-            })
-            .expect('Location', /schedules/)
-            .expect(302)
-            .end((err, res) => {
-              const schedulePath = res.headers.location;
-              const scheduleId = schedulePath.match(
-                /schedules\/(.*?)(\/|$)/
-              )[1];
-              request(app)
-                .get(schedulePath)
-                .expect(/testuser/)
-                .expect(/scheduleName1/)
-                .expect(/memo1/)
-                .expect(/can1/)
-                .expect(200)
-                .end((err) => {
-                  if (err) refuse(err);
-                  resolve({
-                    scheduleId: scheduleId,
-                    done: done,
+    User.upsert({ userId: 0, username: 'testuser' })
+      .then(() => {
+        request(app)
+          .get('/schedules/new')
+          .end((err, res) => {
+            if (err) refuse(err);
+            const setCookie = res.headers['set-cookie'];
+            const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
+            request(app)
+              .post('/schedules')
+              .set('cookie', setCookie)
+              .send({
+                scheduleName: 'scheduleName1',
+                memo: 'memo1',
+                candidates: 'can1',
+                _csrf: csrf,
+              })
+              .expect('Location', /schedules/)
+              .expect(302)
+              .end((err, res) => {
+                if (err) refuse(err);
+                const schedulePath = res.headers.location;
+                const scheduleId = schedulePath.match(
+                  /schedules\/(.*?)(\/|$)/
+                )[1];
+                request(app)
+                  .get(schedulePath)
+                  .expect(/testuser/)
+                  .expect(/scheduleName1/)
+                  .expect(/memo1/)
+                  .expect(/can1/)
+                  .expect(200)
+                  .end((err) => {
+                    if (err) refuse(err);
+                    resolve({
+                      scheduleId: scheduleId,
+                    });
                   });
-                });
-            });
-        });
-    });
+              });
+          });
+      })
+      .catch(refuse);
   });
 };
 
-const promiseUpdateAvailability = function ({ scheduleId, done }) {
+const promiseUpdateAvailability = function ({ scheduleId }) {
   return new Promise((resolve, refuse) => {
-    Candidate.findOne({ where: { scheduleId: scheduleId } }).then(
-      (candidate) => {
+    Candidate.findOne({ where: { scheduleId: scheduleId } })
+      .then((candidate) => {
         request(app)
           .post(
             `/schedules/${scheduleId}/users/${0}/candidates/${
@@ -113,37 +116,39 @@ const promiseUpdateAvailability = function ({ scheduleId, done }) {
           .send({ availability: 2 })
           .expect('{"status":"OK","availability":2}')
           .end((err) => {
-            Availability.findAll({ where: { scheduleId: scheduleId } }).then(
-              (availabilities) => {
+            if (err) refuse(err);
+            Availability.findAll({ where: { scheduleId: scheduleId } })
+              .then((availabilities) => {
                 assert.strictEqual(availabilities.length, 1);
                 assert.strictEqual(availabilities[0].availability, 2);
 
                 if (err) refuse(err);
-                resolve({ scheduleId: scheduleId, done: done });
-              }
-            );
+                resolve({ scheduleId: scheduleId });
+              })
+              .catch(refuse);
           });
-      }
-    );
+      })
+      .catch(refuse);
   });
 };
 
-const promiseUpdateComment = ({ scheduleId, done }) => {
+const promiseUpdateComment = ({ scheduleId }) => {
   return new Promise((resolve, refuse) => {
     request(app)
       .post(`/schedules/${scheduleId}/users/${0}/comments`)
       .send({ comment: 'comment1' })
       .expect('{"status":"OK","comment":"comment1"}')
       .end((err, res) => {
-        Comment.findAll({ where: { scheduleId: scheduleId } }).then(
-          (comments) => {
+        if (err) refuse(err);
+        Comment.findAll({ where: { scheduleId: scheduleId } })
+          .then((comments) => {
             assert.strictEqual(comments.length, 1);
             assert.strictEqual(comments[0].comment, 'comment1');
 
             if (err) refuse(err);
-            resolve({ scheduleId: scheduleId, done: done });
-          }
-        );
+            resolve({ scheduleId: scheduleId });
+          })
+          .catch(refuse);
       });
   });
 };
@@ -159,37 +164,38 @@ describe('/schedules', () => {
   });
 
   it('createSchedule', (done) => {
-    promiseCreateSchedule(done)
-      .then(({ scheduleId, done }) => {
+    promiseCreateSchedule()
+      .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
       })
       .catch(done);
   });
 
   it('updateAvailability', (done) => {
-    promiseCreateSchedule(done)
+    promiseCreateSchedule()
       .then(promiseUpdateAvailability)
-      .then(({ scheduleId, done }) => {
+      .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
       })
       .catch(done);
   });
 
   it('updateComment', (done) => {
-    promiseCreateSchedule(done)
+    promiseCreateSchedule()
       .then(promiseUpdateComment)
-      .then(({ scheduleId, done }) => {
+      .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
       })
       .catch(done);
   });
 });
 
-const promiseEditSchedule = ({ scheduleId, done }) => {
+const promiseEditSchedule = ({ scheduleId }) => {
   return new Promise((resolve, refuse) => {
     request(app)
       .get(`/schedules/${scheduleId}/edit`)
       .end((err, res) => {
+        if (err) refuse(err);
         const setCookie = res.headers['set-cookie'];
         const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
         request(app)
@@ -202,21 +208,26 @@ const promiseEditSchedule = ({ scheduleId, done }) => {
             _csrf: csrf,
           })
           .end((err, res) => {
-            Schedule.findByPk(scheduleId).then((schedule) => {
-              assert.strictEqual(schedule.scheduleName, 'scheduleName1kai');
-              assert.strictEqual(schedule.memo, 'memo1kai');
-              Candidate.findAll({
-                where: { scheduleId: scheduleId },
-                order: [['"candidateId"', 'ASC']],
-              }).then((candidates) => {
-                assert.strictEqual(candidates.length, 2);
-                assert.strictEqual(candidates[0].candidateName, 'can1');
-                assert.strictEqual(candidates[1].candidateName, 'can2');
+            if (err) refuse(err);
+            Schedule.findByPk(scheduleId)
+              .then((schedule) => {
+                assert.strictEqual(schedule.scheduleName, 'scheduleName1kai');
+                assert.strictEqual(schedule.memo, 'memo1kai');
+                Candidate.findAll({
+                  where: { scheduleId: scheduleId },
+                  order: [['"candidateId"', 'ASC']],
+                })
+                  .then((candidates) => {
+                    assert.strictEqual(candidates.length, 2);
+                    assert.strictEqual(candidates[0].candidateName, 'can1');
+                    assert.strictEqual(candidates[1].candidateName, 'can2');
 
-                if (err) refuse(err);
-                resolve({ scheduleId: scheduleId, done: done });
-              });
-            });
+                    if (err) refuse(err);
+                    resolve({ scheduleId: scheduleId });
+                  })
+                  .catch(refuse);
+              })
+              .catch(refuse);
           });
       });
   });
@@ -233,7 +244,7 @@ describe('/schedules/:scheduleId?edit=1', () => {
   });
 
   it('editSchedule', (done) => {
-    promiseCreateSchedule(done)
+    promiseCreateSchedule()
       .then(promiseEditSchedule)
       .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
@@ -242,17 +253,19 @@ describe('/schedules/:scheduleId?edit=1', () => {
   });
 });
 
-const promiseDeleteSchedule = ({ scheduleId: scheduleId, done: done }) => {
+const promiseDeleteSchedule = ({ scheduleId: scheduleId }) => {
   return new Promise((resolve, refuse) => {
     request(app)
       .get(`/schedules/${scheduleId}/edit`)
       .end((err, res) => {
+        if (err) refuse(err);
         const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
         request(app)
           .post(`/schedules/${scheduleId}?delete=1`)
           .set('cookie', res.headers['set-cookie'])
           .send({ _csrf: csrf })
           .end((err, res) => {
+            if (err) refuse(err);
             const p1 = Schedule.findByPk(scheduleId).then((schedule) => {
               assert.strictEqual(!schedule, true);
             });
@@ -271,9 +284,12 @@ const promiseDeleteSchedule = ({ scheduleId: scheduleId, done: done }) => {
             }).then((comments) => {
               assert.strictEqual(comments.length, 0);
             });
-            Promise.all([p1, p2, p3, p4]).then(() => {
-              resolve({ done: done });
-            });
+            Promise.all([p1, p2, p3, p4])
+              .then(() => {
+                if (err) refuse(err);
+                resolve();
+              })
+              .catch(refuse);
           });
       });
   });
@@ -290,13 +306,11 @@ describe('/schedules/:scheduleId?delete=1', () => {
   });
 
   it('deleteSchedule', (done) => {
-    promiseCreateSchedule(done)
+    promiseCreateSchedule()
       .then(promiseUpdateAvailability)
       .then(promiseUpdateComment)
       .then(promiseDeleteSchedule)
-      .then(({ done }) => {
-        done();
-      })
+      .then(() => done())
       .catch(done);
   });
 });
