@@ -70,7 +70,7 @@ const promiseCreateSchedule = function (done) {
             .send({
               scheduleName: 'scheduleName1',
               memo: 'memo1',
-              candidates: 'can1a',
+              candidates: 'can1',
               _csrf: csrf,
             })
             .expect('Location', /schedules/)
@@ -85,11 +85,14 @@ const promiseCreateSchedule = function (done) {
                 .expect(/testuser/)
                 .expect(/scheduleName1/)
                 .expect(/memo1/)
-                .expect(/can1a/)
+                .expect(/can1/)
                 .expect(200)
                 .end((err) => {
                   if (err) refuse(err);
-                  resolve({ scheduleId: scheduleId, done: done });
+                  resolve({
+                    scheduleId: scheduleId,
+                    done: done,
+                  });
                 });
             });
         });
@@ -125,6 +128,26 @@ const promiseUpdateAvailability = function ({ scheduleId, done }) {
   });
 };
 
+const promiseUpdateComment = ({ scheduleId, done }) => {
+  return new Promise((resolve, refuse) => {
+    request(app)
+      .post(`/schedules/${scheduleId}/users/${0}/comments`)
+      .send({ comment: 'comment1' })
+      .expect('{"status":"OK","comment":"comment1"}')
+      .end((err, res) => {
+        Comment.findAll({ where: { scheduleId: scheduleId } }).then(
+          (comments) => {
+            assert.strictEqual(comments.length, 1);
+            assert.strictEqual(comments[0].comment, 'comment1');
+
+            if (err) refuse(err);
+            resolve({ scheduleId: scheduleId, done: done });
+          }
+        );
+      });
+  });
+};
+
 describe('/schedules', () => {
   before(() => {
     passportStub.install(app);
@@ -148,6 +171,131 @@ describe('/schedules', () => {
       .then(promiseUpdateAvailability)
       .then(({ scheduleId, done }) => {
         deleteScheduleAggregate(scheduleId, done);
+      })
+      .catch(done);
+  });
+
+  it('updateComment', (done) => {
+    promiseCreateSchedule(done)
+      .then(promiseUpdateComment)
+      .then(({ scheduleId, done }) => {
+        deleteScheduleAggregate(scheduleId, done);
+      })
+      .catch(done);
+  });
+});
+
+const promiseEditSchedule = ({ scheduleId, done }) => {
+  return new Promise((resolve, refuse) => {
+    request(app)
+      .get(`/schedules/${scheduleId}/edit`)
+      .end((err, res) => {
+        const setCookie = res.headers['set-cookie'];
+        const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
+        request(app)
+          .post(`/schedules/${scheduleId}?edit=1`)
+          .set('cookie', setCookie)
+          .send({
+            scheduleName: 'scheduleName1kai',
+            memo: 'memo1kai',
+            candidates: 'can2',
+            _csrf: csrf,
+          })
+          .end((err, res) => {
+            Schedule.findByPk(scheduleId).then((schedule) => {
+              assert.strictEqual(schedule.scheduleName, 'scheduleName1kai');
+              assert.strictEqual(schedule.memo, 'memo1kai');
+              Candidate.findAll({
+                where: { scheduleId: scheduleId },
+                order: [['"candidateId"', 'ASC']],
+              }).then((candidates) => {
+                assert.strictEqual(candidates.length, 2);
+                assert.strictEqual(candidates[0].candidateName, 'can1');
+                assert.strictEqual(candidates[1].candidateName, 'can2');
+
+                if (err) refuse(err);
+                resolve({ scheduleId: scheduleId, done: done });
+              });
+            });
+          });
+      });
+  });
+};
+
+describe('/schedules/:scheduleId?edit=1', () => {
+  before(() => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+  });
+  after(() => {
+    passportStub.logout();
+    passportStub.uninstall(app);
+  });
+
+  it('editSchedule', (done) => {
+    promiseCreateSchedule(done)
+      .then(promiseEditSchedule)
+      .then(({ scheduleId }) => {
+        deleteScheduleAggregate(scheduleId, done);
+      })
+      .catch(done);
+  });
+});
+
+const promiseDeleteSchedule = ({ scheduleId: scheduleId, done: done }) => {
+  return new Promise((resolve, refuse) => {
+    request(app)
+      .get(`/schedules/${scheduleId}/edit`)
+      .end((err, res) => {
+        const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
+        request(app)
+          .post(`/schedules/${scheduleId}?delete=1`)
+          .set('cookie', res.headers['set-cookie'])
+          .send({ _csrf: csrf })
+          .end((err, res) => {
+            const p1 = Schedule.findByPk(scheduleId).then((schedule) => {
+              assert.strictEqual(!schedule, true);
+            });
+            const p2 = Candidate.findAll({
+              where: { scheduleId: scheduleId },
+            }).then((candidates) => {
+              assert.strictEqual(candidates.length, 0);
+            });
+            const p3 = Availability.findAll({
+              where: { scheduleId: scheduleId },
+            }).then((availabilities) => {
+              assert.strictEqual(availabilities.length, 0);
+            });
+            const p4 = Comment.findAll({
+              where: { scheduleId: scheduleId },
+            }).then((comments) => {
+              assert.strictEqual(comments.length, 0);
+            });
+            Promise.all([p1, p2, p3, p4]).then(() => {
+              resolve({ done: done });
+            });
+          });
+      });
+  });
+};
+
+describe('/schedules/:scheduleId?delete=1', () => {
+  before(() => {
+    passportStub.install(app);
+    passportStub.login({ id: 0, username: 'testuser' });
+  });
+  after(() => {
+    passportStub.logout();
+    passportStub.uninstall(app);
+  });
+
+  it('deleteSchedule', (done) => {
+    promiseCreateSchedule(done)
+      .then(promiseUpdateAvailability)
+      .then(promiseUpdateComment)
+      .then(promiseDeleteSchedule)
+      .then(({ done }) => {
+        done();
       })
       .catch(done);
   });
