@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -25,6 +27,26 @@ User.sync().then(() => {
     Availability.sync();
   });
 });
+
+const nodemailer = require('nodemailer');
+const transporter = nodemailer.createTransport({
+  host: process.env.MAIL_HOST,
+  port: process.env.MAIL_PORT,
+  secure: process.env.MAIL_SECURE,
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
+  },
+});
+const mailData = {
+  from: 'suiran256@gmail.com',
+  to: 'suiran256@gmail.com',
+  //cc: 'cc1@example.com,cc2@example.com,cc3@example.com',
+  //bcc: 'bcc1@example.com,bcc2@example.com,bcc3@example.com',
+  text: 'test1\ntest2\nテスト3',
+  //html: 'HTMLメール本文<br>HTMLメール本文<br>HTMLメール本文',
+  subject: 'test',
+};
 
 var GitHubStrategy = require('passport-github2').Strategy;
 var GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || '2f831cb3d4aac02393aa';
@@ -85,9 +107,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(
   session({
+    name: 'sessionId',
     secret: 'e55be81b307c1c09',
     resave: false,
     saveUninitialized: false,
+    cookie: {
+      //secure: true,
+      //httpOnly: true,
+      //expires: new Date(new Date().getTime() + 1000 * 60),
+    },
   })
 );
 app.use(passport.initialize());
@@ -110,6 +138,14 @@ app.get(
   '/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/login' }),
   function (req, res) {
+    transporter.sendMail(mailData, (error, info) => {
+      if (error) {
+        console.log(error); // エラー情報
+      } else {
+        console.log(info); // 送信したメールの情報
+      }
+    });
+
     var loginFrom = req.cookies.loginFrom;
     // オープンリダイレクタ脆弱性対策
     if (
