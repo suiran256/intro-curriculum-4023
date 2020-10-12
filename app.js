@@ -69,7 +69,7 @@ passport.use(
       clientSecret: GITHUB_CLIENT_SECRET,
       callbackURL: process.env.HEROKU_URL
         ? process.env.HEROKU_URL + 'auth/github/callback'
-        : 'http://localhost:8000/auth/github/callback',
+        : 'http://localhost/auth/github/callback',
     },
     function (accessToken, refreshToken, profile, done) {
       process.nextTick(function () {
