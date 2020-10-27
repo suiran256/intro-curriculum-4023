@@ -43,7 +43,7 @@ const mailData = {
   to: 'suiran256@gmail.com',
   //cc: 'cc1@example.com,cc2@example.com,cc3@example.com',
   //bcc: 'bcc1@example.com,bcc2@example.com,bcc3@example.com',
-  text: 'test1\ntest2\nテスト3',
+  text: 'createTet\ntest2\nテスト3',
   //html: 'HTMLメール本文<br>HTMLメール本文<br>HTMLメール本文',
   subject: 'test',
 };

@@ -56,7 +56,30 @@ describe('/logout', () => {
   });
 });
 
-const promiseCreateSchedule = function () {
+//const PostWithCsrfTest = {
+const createTet = {
+  showPath: 'schedules/new',
+  postPath: '/schedules',
+  postData: {
+    scheduleName: 'scheduleName1',
+    memo: 'memo1',
+    candidates: 'can1',
+  },
+  fnValidate: function (err, res) {
+    const schedulePath = res.headers.location;
+    const scheduleId = schedulePath.match(/schedules\/(.*?)(\/|$)/)[1];
+    request(app)
+      .get(schedulePath)
+      .expect(/testuser/)
+      .expect(/scheduleName1/)
+      .expect(/memo1/)
+      .expect(/can1/)
+      .expect(200);
+    return { scheduleId: scheduleId };
+  },
+};
+
+const promiseCreateSchedule = function (test) {
   return new Promise((resolve, reject) => {
     User.upsert({ userId: 0, username: 'testuser' })
       .then(() => {
@@ -67,7 +90,7 @@ const promiseCreateSchedule = function () {
             const setCookie = res.headers['set-cookie'];
             const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
             request(app)
-              .post('/schedules')
+              .post(test.postPath)
               .set('cookie', setCookie)
               .send({
                 scheduleName: 'scheduleName1',
@@ -75,27 +98,11 @@ const promiseCreateSchedule = function () {
                 candidates: 'can1',
                 _csrf: csrf,
               })
-              .expect('Location', /schedules/)
-              .expect(302)
               .end((err, res) => {
                 if (err) reject(err);
-                const schedulePath = res.headers.location;
-                const scheduleId = schedulePath.match(
-                  /schedules\/(.*?)(\/|$)/
-                )[1];
-                request(app)
-                  .get(schedulePath)
-                  .expect(/testuser/)
-                  .expect(/scheduleName1/)
-                  .expect(/memo1/)
-                  .expect(/can1/)
-                  .expect(200)
-                  .end((err) => {
-                    if (err) reject(err);
-                    resolve({
-                      scheduleId: scheduleId,
-                    });
-                  });
+                const ret = test.fnValidate(err, res);
+                if (err) reject(err);
+                resolve(ret);
               });
           });
       })
@@ -164,7 +171,7 @@ describe('/schedules', () => {
   });
 
   it('createSchedule', (done) => {
-    promiseCreateSchedule()
+    promiseCreateSchedule(createTet)
       .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
       })
@@ -172,7 +179,7 @@ describe('/schedules', () => {
   });
 
   it('updateAvailability', (done) => {
-    promiseCreateSchedule()
+    promiseCreateSchedule(createTet)
       .then(promiseUpdateAvailability)
       .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
@@ -181,7 +188,7 @@ describe('/schedules', () => {
   });
 
   it('updateComment', (done) => {
-    promiseCreateSchedule()
+    promiseCreateSchedule(createTet)
       .then(promiseUpdateComment)
       .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
@@ -244,7 +251,7 @@ describe('/schedules/:scheduleId?edit=1', () => {
   });
 
   it('editSchedule', (done) => {
-    promiseCreateSchedule()
+    promiseCreateSchedule(createTet)
       .then(promiseEditSchedule)
       .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
@@ -306,7 +313,7 @@ describe('/schedules/:scheduleId?delete=1', () => {
   });
 
   it('deleteSchedule', (done) => {
-    promiseCreateSchedule()
+    promiseCreateSchedule(createTet)
       .then(promiseUpdateAvailability)
       .then(promiseUpdateComment)
       .then(promiseDeleteSchedule)
