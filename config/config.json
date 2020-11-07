@@ -3,7 +3,7 @@
     "username": "postgres",
     "password": "postgres",
     "database": "schedule_arranger",
-    "host": "localhost",
+    "host": "localhost:5432",
     "dialect": "postgres"
   }
 }

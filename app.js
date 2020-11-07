@@ -37,9 +37,12 @@ const db = require('./models/index');
 const sequelize = db.sequelize;
 const sequelizeSync = (sequelize) => {
   return (req, res, next) =>
-    sequelize.sync().then(() => {
-      next();
-    });
+    sequelize
+      .sync()
+      .then(() => {
+        next();
+      })
+      .catch(next);
 };
 
 var app = express();
