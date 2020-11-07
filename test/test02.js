@@ -6,13 +6,15 @@ const passportStub = require('passport-stub');
 const assert = require('assert');
 
 const app = require('../app');
-const User = require('../models/user');
-const Schedule = require('../models/schedule');
-const Candidate = require('../models/candidate');
-const Availability = require('../models/availability');
-const Comment = require('../models/comment');
 const deleteScheduleAggregate = require('../routes/schedules')
   .deleteScheduleAggregate;
+// const User = require('../models/user');
+// const Schedule = require('../models/schedule');
+// const Candidate = require('../models/candidate');
+// const Availability = require('../models/availability');
+// const Comment = require('../models/comment');
+const db = require('../models/index');
+const { User, Schedule, Candidate, Availability, Comment } = db;
 
 describe('/login', () => {
   before(() => {

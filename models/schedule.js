@@ -1,37 +1,47 @@
 'use strict';
-const loader = require('./sequelize-loader');
-const Sequelize = loader.Sequelize;
-
-const Schedule = loader.database.define('schedules', {
-  scheduleId: {
-    type: Sequelize.UUID,
-    primaryKey: true,
-    allowNull: false
-  },
-  scheduleName: {
-    type: Sequelize.STRING,
-    allowNull: false
-  },
-  memo: {
-    type: Sequelize.TEXT,
-    allowNull: false
-  },
-  createdBy: {
-    type: Sequelize.INTEGER,
-    allowNull: false
-  },
-  updatedAt: {
-    type: Sequelize.DATE,
-    allowNull: false
+const { Model } = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class Schedule extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      Schedule.belongsTo(models.User, { foreignKey: 'createdBy' });
+    }
   }
-}, {
-    freezeTableName: true,
-    timestamps: false,
-    indexes: [
-      {
-        fields: ['createdBy']
-      }
-    ]
-  });
 
-module.exports = Schedule;
+  Schedule.init(
+    {
+      scheduleId: {
+        type: DataTypes.UUID,
+        primaryKey: true,
+        allowNull: false,
+      },
+      scheduleName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      memo: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      createdBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      updatedAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+      },
+    },
+    {
+      sequelize,
+      freezeTableName: true,
+      timestamps: false,
+      modelName: 'Schedule',
+    }
+  );
+  return Schedule;
+};

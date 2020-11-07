@@ -3,13 +3,16 @@ const express = require('express');
 const router = express.Router();
 const authenticationEnsurer = require('./authentication-ensurer');
 const uuid = require('uuid');
-const Schedule = require('../models/schedule');
-const Candidate = require('../models/candidate');
-const User = require('../models/user');
-const Availability = require('../models/availability');
-const Comment = require('../models/comment');
 const csrf = require('csurf');
 const csrfProtection = csrf({ cookie: true });
+// const Schedule = require('../models/schedule');
+// const Candidate = require('../models/candidate');
+// const User = require('../models/user');
+// const Availability = require('../models/availability');
+// const Comment = require('../models/comment');
+
+const db = require('../models/index');
+const { User, Schedule, Candidate, Availability, Comment } = db;
 
 router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
   res.render('new', { user: req.user, csrfToken: req.csrfToken() });

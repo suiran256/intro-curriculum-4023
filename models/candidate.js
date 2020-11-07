@@ -1,30 +1,39 @@
 'use strict';
-const loader = require('./sequelize-loader');
-const Sequelize = loader.Sequelize;
-
-const Candidate = loader.database.define('candidates', {
-  candidateId: {
-    type: Sequelize.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-    allowNull: false
-  },
-  candidateName: {
-    type: Sequelize.STRING,
-    allowNull: false
-  },
-  scheduleId: {
-    type: Sequelize.UUID,
-    allowNull: false
+const { Model } = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class Candidate extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      Candidate.belongsTo(models.User, { foreignKey: 'userId' });
+    }
   }
-}, {
-    freezeTableName: true,
-    timestamps: false,
-    indexes: [
-      {
-        fields: ['scheduleId']
-      }
-    ]
-  });
-
-module.exports = Candidate;
+  Candidate.init(
+    {
+      candidateId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      candidateName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      scheduleId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+      },
+    },
+    {
+      sequelize,
+      freezeTableName: true,
+      timestamps: false,
+      modelName: 'Candidate',
+    }
+  );
+  return Candidate;
+};

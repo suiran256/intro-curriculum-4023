@@ -1,25 +1,39 @@
 'use strict';
-const loader = require('./sequelize-loader');
-const Sequelize = loader.Sequelize;
-
-const Comment = loader.database.define('comments', {
-  scheduleId: {
-    type: Sequelize.UUID,
-    primaryKey: true,
-    allowNull: false
-  },
-  userId: {
-    type: Sequelize.INTEGER,
-    primaryKey: true,
-    allowNull: false
-  },
-  comment: {
-    type: Sequelize.STRING,
-    allowNull: false
+const { Model } = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class Comment extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      Comment.belongsTo(models.User, { foreignKey: 'createdBy' });
+    }
   }
-}, {
-    freezeTableName: true,
-    timestamps: false
-  });
-
-module.exports = Comment;
+  Comment.init(
+    {
+      scheduleId: {
+        type: DataTypes.UUID,
+        primaryKey: true,
+        allowNull: false,
+      },
+      userId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        allowNull: false,
+      },
+      comment: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+    },
+    {
+      sequelize,
+      freezeTableName: true,
+      timestamps: false,
+      modelName: 'Comment',
+    }
+  );
+  return Comment;
+};
