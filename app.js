@@ -8,6 +8,7 @@ var logger = require('morgan');
 var helmet = require('helmet');
 var session = require('express-session');
 var passport = require('passport');
+var app = express();
 
 const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
@@ -34,17 +35,28 @@ var availabilitiesRouter = require('./routes/availabilities');
 var commentsRouter = require('./routes/comments');
 
 const db = require('./models/index');
-const sequelize = db.sequelize;
-const sequelizeSync = (sequelize) => {
-  return (req, res, next) =>
-    sequelize.sync().then(() => {
-      next();
-    });
-};
-
-var app = express();
-app.use(sequelizeSync(sequelize));
+//const sequelize = db.sequelize;
 const User = db.User;
+// const Schedule = db.Schedule;
+// const Candidate = db.Candidate;
+// const Availability = db.Availability;
+// const Comment = db.Comment;
+// User.sync().then(() => {
+//   Schedule.belongsTo(User, { foreignKey: 'createdBy' });
+//   Schedule.sync();
+//   Comment.belongsTo(User, { foreignKey: 'userId' });
+//   Comment.sync();
+//   Availability.belongsTo(User, { foreignKey: 'userId' });
+//   Candidate.sync().then(() => {
+//     Availability.belongsTo(Candidate, { foreignKey: 'candidateId' });
+//     Availability.sync();
+//   });
+// });
+//sequelize.sync(() => {});
+//const User = db.User;
+
+//sequelize.sync();
+//app.use(sequelizeSync(sequelize));
 
 app.use(helmet());
 app.set('views', path.join(__dirname, 'views'));
@@ -65,6 +77,7 @@ passport.serializeUser(function (user, done) {
 passport.deserializeUser(function (obj, done) {
   done(null, obj);
 });
+
 passport.use(
   new GitHubStrategy(
     {
@@ -75,13 +88,15 @@ passport.use(
         : 'http://localhost:3000/auth/github/callback',
     },
     function (accessToken, refreshToken, profile, done) {
-      process.nextTick(function () {
+      process.nextTick(() => {
         User.upsert({
           userId: profile.id,
           username: profile.username,
-        }).then(() => {
-          done(null, profile);
-        });
+        })
+          .then(() => {
+            done(null, profile);
+          })
+          .catch(done);
       });
     }
   )

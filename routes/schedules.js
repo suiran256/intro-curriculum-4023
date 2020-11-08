@@ -21,6 +21,9 @@ router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
 router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) => {
   const scheduleId = uuid.v4();
   const updatedAt = new Date();
+
+  console.log('req.user: ' + req.user);
+
   Schedule.create({
     scheduleId: scheduleId,
     scheduleName: req.body.scheduleName.slice(0, 255) || 'noname',
