@@ -5,7 +5,8 @@ module.exports = {
       candidateId: {
         type: Sequelize.INTEGER,
         primaryKey: true,
-        autoincrement: true,
+        autoIncrement: true,
+        allowNull: false,
       },
       candidateName: {
         type: Sequelize.STRING,
