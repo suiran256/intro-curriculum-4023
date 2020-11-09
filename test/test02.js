@@ -1,20 +1,15 @@
 /* eslint-env mocha */
-/* eslint-disable no-unused-vars */
+//* eslint-disable no-unused-vars */
 'use strict';
+const db = require('../models/index');
+db.sequelize.sync();
+const { User, Schedule, Candidate, Availability, Comment, sequelize } = db;
+const deleteScheduleAggregate = require('../routes/schedules')
+  .deleteScheduleAggregate;
 const request = require('supertest');
 const passportStub = require('passport-stub');
 const assert = require('assert');
-
 const app = require('../app');
-const deleteScheduleAggregate = require('../routes/schedules')
-  .deleteScheduleAggregate;
-// const User = require('../models/user');
-// const Schedule = require('../models/schedule');
-// const Candidate = require('../models/candidate');
-// const Availability = require('../models/availability');
-// const Comment = require('../models/comment');
-const db = require('../models/index');
-const { User, Schedule, Candidate, Availability, Comment } = db;
 
 describe('/login', () => {
   before(() => {

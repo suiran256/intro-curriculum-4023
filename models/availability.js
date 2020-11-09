@@ -31,7 +31,6 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'Availability',
       timestamps: false,
       indexes: [
         {

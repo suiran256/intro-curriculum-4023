@@ -35,28 +35,7 @@ var availabilitiesRouter = require('./routes/availabilities');
 var commentsRouter = require('./routes/comments');
 
 const db = require('./models/index');
-//const sequelize = db.sequelize;
 const User = db.User;
-// const Schedule = db.Schedule;
-// const Candidate = db.Candidate;
-// const Availability = db.Availability;
-// const Comment = db.Comment;
-// User.sync().then(() => {
-//   Schedule.belongsTo(User, { foreignKey: 'createdBy' });
-//   Schedule.sync();
-//   Comment.belongsTo(User, { foreignKey: 'userId' });
-//   Comment.sync();
-//   Availability.belongsTo(User, { foreignKey: 'userId' });
-//   Candidate.sync().then(() => {
-//     Availability.belongsTo(Candidate, { foreignKey: 'candidateId' });
-//     Availability.sync();
-//   });
-// });
-//sequelize.sync(() => {});
-//const User = db.User;
-
-//sequelize.sync();
-//app.use(sequelizeSync(sequelize));
 
 app.use(helmet());
 app.set('views', path.join(__dirname, 'views'));
@@ -129,13 +108,13 @@ app.get(
   '/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/login' }),
   function (req, res) {
-    transporter.sendMail(mailData, (error, info) => {
-      if (error) {
-        console.log(error); // エラー情報
-      } else {
-        console.log(info); // 送信したメールの情報
-      }
-    });
+    // transporter.sendMail(mailData, (error, info) => {
+    //   if (error) {
+    //     console.log(error); // エラー情報
+    //   } else {
+    //     console.log(info); // 送信したメールの情報
+    //   }
+    // });
 
     var loginFrom = req.cookies.loginFrom;
     // オープンリダイレクタ脆弱性対策

@@ -3,7 +3,7 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Candidate extends Model {
     static associate(models) {
-      Candidate.hasOne(models.Availability, { foreignKey: 'candidateId' });
+      Candidate.hasMany(models.Availability, { foreignKey: 'candidateId' });
     }
   }
   Candidate.init(
@@ -25,7 +25,6 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'Candidate',
       timestamps: false,
       indexes: [
         {

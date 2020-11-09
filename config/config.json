@@ -4,6 +4,8 @@
     "password": "postgres",
     "database": "schedule_arranger",
     "host": "localhost",
-    "dialect": "postgres"
+    "dialect": "postgres",
+    "operatorsAliases": false
   }
+  
 }

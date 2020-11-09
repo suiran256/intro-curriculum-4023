@@ -5,11 +5,6 @@ const authenticationEnsurer = require('./authentication-ensurer');
 const uuid = require('uuid');
 const csrf = require('csurf');
 const csrfProtection = csrf({ cookie: true });
-// const Schedule = require('../models/schedule');
-// const Candidate = require('../models/candidate');
-// const User = require('../models/user');
-// const Availability = require('../models/availability');
-// const Comment = require('../models/comment');
 
 const db = require('../models/index');
 const { User, Schedule, Candidate, Availability, Comment } = db;
@@ -21,8 +16,6 @@ router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
 router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) => {
   const scheduleId = uuid.v4();
   const updatedAt = new Date();
-
-  console.log('req.user: ' + req.user);
 
   Schedule.create({
     scheduleId: scheduleId,
@@ -123,15 +116,6 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
         comments.forEach((comment) => {
           commentMap.set(comment.userId, comment.comment);
         });
-        // console.log({
-        //   user: req.user,
-        //   schedule: storedSchedule,
-        //   candidates: storedCandidates,
-        //   users: users,
-        //   availabilityMapMap: availabilityMapMap,
-        //   commentMap: commentMap,
-        // });
-        console.log(storedSchedule);
         res.render('schedule', {
           user: req.user,
           schedule: storedSchedule,

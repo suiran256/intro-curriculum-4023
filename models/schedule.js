@@ -32,7 +32,6 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'Schedule',
       timestamps: false,
       indexes: [
         {
