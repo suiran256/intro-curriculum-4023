@@ -2,16 +2,10 @@
 const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class Schedule extends Model {
-    /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
-     */
     static associate(models) {
       Schedule.belongsTo(models.User, { foreignKey: 'createdBy' });
     }
   }
-
   Schedule.init(
     {
       scheduleId: {
@@ -38,9 +32,12 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      freezeTableName: true,
       timestamps: false,
-      modelName: 'Schedule',
+      indexes: [
+        {
+          fields: ['createdBy'],
+        },
+      ],
     }
   );
   return Schedule;

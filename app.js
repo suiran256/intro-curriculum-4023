@@ -8,6 +8,7 @@ var logger = require('morgan');
 var helmet = require('helmet');
 var session = require('express-session');
 var passport = require('passport');
+var app = express();
 
 const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
@@ -34,19 +35,6 @@ var availabilitiesRouter = require('./routes/availabilities');
 var commentsRouter = require('./routes/comments');
 
 const db = require('./models/index');
-const sequelize = db.sequelize;
-const sequelizeSync = (sequelize) => {
-  return (req, res, next) =>
-    sequelize
-      .sync()
-      .then(() => {
-        next();
-      })
-      .catch(next);
-};
-
-var app = express();
-app.use(sequelizeSync(sequelize));
 const User = db.User;
 
 app.use(helmet());
@@ -68,6 +56,7 @@ passport.serializeUser(function (user, done) {
 passport.deserializeUser(function (obj, done) {
   done(null, obj);
 });
+
 passport.use(
   new GitHubStrategy(
     {
@@ -78,13 +67,15 @@ passport.use(
         : 'http://localhost:3000/auth/github/callback',
     },
     function (accessToken, refreshToken, profile, done) {
-      process.nextTick(function () {
+      process.nextTick(() => {
         User.upsert({
           userId: profile.id,
           username: profile.username,
-        }).then(() => {
-          done(null, profile);
-        });
+        })
+          .then(() => {
+            done(null, profile);
+          })
+          .catch(done);
       });
     }
   )
@@ -117,13 +108,13 @@ app.get(
   '/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/login' }),
   function (req, res) {
-    transporter.sendMail(mailData, (error, info) => {
-      if (error) {
-        console.log(error); // エラー情報
-      } else {
-        console.log(info); // 送信したメールの情報
-      }
-    });
+    // transporter.sendMail(mailData, (error, info) => {
+    //   if (error) {
+    //     console.log(error); // エラー情報
+    //   } else {
+    //     console.log(info); // 送信したメールの情報
+    //   }
+    // });
 
     var loginFrom = req.cookies.loginFrom;
     // オープンリダイレクタ脆弱性対策

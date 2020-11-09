@@ -7,8 +7,8 @@ block content
     div.card-body
       p(style="white-space:pre;") #{schedule.memo}
     div.card-footer
-      p createdBy #{schedule.user.username}
-  - var isMine = parseInt(user.id) === schedule.user.userId
+      p createdBy #{schedule.User.username}
+  - var isMine = parseInt(user.id) === schedule.User.userId
   if isMine
     div
       a(href=`/schedules/${schedule.scheduleId}/edit`).btn.btn-info editSchedule

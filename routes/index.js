@@ -2,10 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const moment = require('moment-timezone');
-//const Schedule = require('../models/schedule');
 const { Schedule } = require('../models/index');
 
-/* GET home page. */
 router.get('/', (req, res, next) => {
   const title = 'title';
   if (req.user) {

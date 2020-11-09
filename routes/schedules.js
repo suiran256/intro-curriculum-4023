@@ -5,11 +5,6 @@ const authenticationEnsurer = require('./authentication-ensurer');
 const uuid = require('uuid');
 const csrf = require('csurf');
 const csrfProtection = csrf({ cookie: true });
-// const Schedule = require('../models/schedule');
-// const Candidate = require('../models/candidate');
-// const User = require('../models/user');
-// const Availability = require('../models/availability');
-// const Comment = require('../models/comment');
 
 const db = require('../models/index');
 const { User, Schedule, Candidate, Availability, Comment } = db;
@@ -21,6 +16,7 @@ router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
 router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) => {
   const scheduleId = uuid.v4();
   const updatedAt = new Date();
+
   Schedule.create({
     scheduleId: scheduleId,
     scheduleName: req.body.scheduleName.slice(0, 255) || 'noname',
@@ -81,9 +77,9 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
       // 出欠 MapMap(キー:ユーザー ID, 値:出欠Map(キー:候補 ID, 値:出欠)) を作成する
       const availabilityMapMap = new Map(); // key: userId, value: Map(key: candidateId, availability)
       availabilities.forEach((a) => {
-        const map = availabilityMapMap.get(a.user.userId) || new Map();
+        const map = availabilityMapMap.get(a.User.userId) || new Map();
         map.set(a.candidateId, a.availability);
-        availabilityMapMap.set(a.user.userId, map);
+        availabilityMapMap.set(a.User.userId, map);
       });
 
       // 閲覧ユーザーと出欠に紐づくユーザーからユーザー Map (キー:ユーザー ID, 値:ユーザー) を作る
@@ -94,10 +90,10 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
         username: req.user.username,
       });
       availabilities.forEach((a) => {
-        userMap.set(a.user.userId, {
-          isSelf: parseInt(req.user.id) === a.user.userId, // 閲覧ユーザー自身であるかを含める
-          userId: a.user.userId,
-          username: a.user.username,
+        userMap.set(a.User.userId, {
+          isSelf: parseInt(req.user.id) === a.User.userId, // 閲覧ユーザー自身であるかを含める
+          userId: a.User.userId,
+          username: a.User.username,
         });
       });
 
@@ -201,7 +197,8 @@ router.post(
               } else {
                 res.redirect('/schedules/' + schedule.scheduleId);
               }
-            });
+            })
+            .catch(next);
         } else if (parseInt(req.query.delete) === 1) {
           deleteScheduleAggregate(req.params.scheduleId, () => {
             res.redirect('/');
