@@ -2,14 +2,15 @@
 //* eslint-disable no-unused-vars */
 'use strict';
 const db = require('../models/index');
-db.sequelize.sync();
-const { User, Schedule, Candidate, Availability, Comment, sequelize } = db;
+const { User, Schedule, Candidate, Availability, Comment } = db;
+const app = require('../app');
 const deleteScheduleAggregate = require('../routes/schedules')
   .deleteScheduleAggregate;
 const request = require('supertest');
 const passportStub = require('passport-stub');
 const assert = require('assert');
-const app = require('../app');
+
+const promiseSequelizeSync = db.sequelize.sync();
 
 describe('/login', () => {
   before(() => {
@@ -161,6 +162,7 @@ describe('/schedules', () => {
   before(() => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
+    return promiseSequelizeSync;
   });
   after(() => {
     passportStub.logout();
@@ -241,6 +243,7 @@ describe('/schedules/:scheduleId?edit=1', () => {
   before(() => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
+    return promiseSequelizeSync;
   });
   after(() => {
     passportStub.logout();
@@ -303,6 +306,7 @@ describe('/schedules/:scheduleId?delete=1', () => {
   before(() => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
+    return promiseSequelizeSync;
   });
   after(() => {
     passportStub.logout();
