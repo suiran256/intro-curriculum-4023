@@ -5,13 +5,38 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "node",
+      "command": "npm start",
+      "name": "Run npm start",
       "request": "launch",
-      "name": "プログラムの起動",
+      "type": "node-terminal"
+    },
+  {
+    "args": [
+      "-u",
+      "tdd",
+      "--timeout",
+      "999999",
+      "--colors",
+      "${workspaceFolder}/test"
+    ],
+    "internalConsoleOptions": "openOnSessionStart",
+    "name": "Mocha Tests",
+    "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+    "request": "launch",
+    "skipFiles": [
+      "<node_internals>/**"
+    ],
+    "type": "pwa-node"
+  },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach",
+      //"post": 9229,
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/bin/www"
+      //"program": "${workspaceFolder}/bin/www"
     }
   ]
 }
