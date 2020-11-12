@@ -2,10 +2,10 @@
 //* eslint-disable no-unused-vars */
 'use strict';
 const db = require('../models/index');
-db.sequelize.sync();
-const { User, Schedule, Candidate, Availability, Comment, sequelize } = db;
+const { User, Schedule, Candidate, Availability, Comment } = db;
 const deleteScheduleAggregate = require('../routes/schedules')
   .deleteScheduleAggregate;
+db.sequelize.sync();
 const request = require('supertest');
 const passportStub = require('passport-stub');
 const assert = require('assert');
