@@ -10,14 +10,12 @@ const request = require('supertest');
 const passportStub = require('passport-stub');
 const assert = require('assert');
 
-const promiseSequelizeSync = (done) => {
+before((done) => {
   db.sequelize
     .sync()
-    .then(() => {
-      done();
-    })
+    .then(() => done())
     .catch(done);
-};
+});
 
 describe('/login', () => {
   before(() => {
@@ -166,10 +164,9 @@ const promiseUpdateComment = ({ scheduleId }) => {
 };
 
 describe('/schedules', () => {
-  before((done) => {
+  before(() => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
-    promiseSequelizeSync(done);
   });
   after(() => {
     passportStub.logout();
@@ -247,10 +244,9 @@ const promiseEditSchedule = ({ scheduleId }) => {
 };
 
 describe('/schedules/:scheduleId?edit=1', () => {
-  before((done) => {
+  before(() => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
-    promiseSequelizeSync(done);
   });
   after(() => {
     passportStub.logout();
@@ -310,10 +306,9 @@ const promiseDeleteSchedule = ({ scheduleId: scheduleId }) => {
 };
 
 describe('/schedules/:scheduleId?delete=1', () => {
-  before((done) => {
+  before(() => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
-    promiseSequelizeSync(done);
   });
   after(() => {
     passportStub.logout();
