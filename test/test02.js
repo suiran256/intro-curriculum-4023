@@ -6,12 +6,18 @@ const { User, Schedule, Candidate, Availability, Comment } = db;
 const app = require('../app');
 const deleteScheduleAggregate = require('../routes/schedules')
   .deleteScheduleAggregate;
-db.sequelize.sync();
 const request = require('supertest');
 const passportStub = require('passport-stub');
 const assert = require('assert');
 
-const promiseSequelizeSync = db.sequelize.sync();
+const promiseSequelizeSync = (done) => {
+  db.sequelize
+    .sync()
+    .then(() => {
+      done();
+    })
+    .catch(done);
+};
 
 describe('/login', () => {
   before(() => {
@@ -160,10 +166,10 @@ const promiseUpdateComment = ({ scheduleId }) => {
 };
 
 describe('/schedules', () => {
-  before(() => {
+  before((done) => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
-    return promiseSequelizeSync;
+    promiseSequelizeSync(done);
   });
   after(() => {
     passportStub.logout();
@@ -241,10 +247,10 @@ const promiseEditSchedule = ({ scheduleId }) => {
 };
 
 describe('/schedules/:scheduleId?edit=1', () => {
-  before(() => {
+  before((done) => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
-    return promiseSequelizeSync;
+    promiseSequelizeSync(done);
   });
   after(() => {
     passportStub.logout();
@@ -304,10 +310,10 @@ const promiseDeleteSchedule = ({ scheduleId: scheduleId }) => {
 };
 
 describe('/schedules/:scheduleId?delete=1', () => {
-  before(() => {
+  before((done) => {
     passportStub.install(app);
     passportStub.login({ id: 0, username: 'testuser' });
-    return promiseSequelizeSync;
+    promiseSequelizeSync(done);
   });
   after(() => {
     passportStub.logout();
