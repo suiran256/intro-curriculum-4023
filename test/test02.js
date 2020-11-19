@@ -6,6 +6,7 @@ const { User, Schedule, Candidate, Availability, Comment } = db;
 const app = require('../app');
 const deleteScheduleAggregate = require('../routes/schedules')
   .deleteScheduleAggregate;
+db.sequelize.sync();
 const request = require('supertest');
 const passportStub = require('passport-stub');
 const assert = require('assert');
