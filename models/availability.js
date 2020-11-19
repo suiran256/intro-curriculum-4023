@@ -1,35 +1,43 @@
 'use strict';
-const loader = require('./sequelize-loader');
-const Sequelize = loader.Sequelize;
-
-const Availability = loader.database.define('availabilities', {
-  candidateId: {
-    type: Sequelize.INTEGER,
-    primaryKey: true,
-    allowNull: false
-  },
-  userId: {
-    type: Sequelize.INTEGER,
-    primaryKey: true,
-    allowNull: false
-  },
-  availability: {
-    type: Sequelize.INTEGER,
-    allowNull: false,
-    defaultValue: 0
-  },
-  scheduleId: {
-    type: Sequelize.UUID,
-    allowNull: false
+const { Model } = require('sequelize');
+module.exports = (sequelize, DataTypes) => {
+  class Availability extends Model {
+    static associate(models) {
+      Availability.belongsTo(models.User, { foreignKey: 'userId' });
+      Availability.belongsTo(models.Candidate, { foreignKey: 'candidateId' });
+    }
   }
-}, {
-    freezeTableName: true,
-    timestamps: false,
-    indexes: [
-      {
-        fields: ['scheduleId']
-      }
-    ]
-  });
-
-module.exports = Availability;
+  Availability.init(
+    {
+      candidateId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        allowNull: false,
+      },
+      userId: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        allowNull: false,
+      },
+      availability: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      scheduleId: {
+        type: DataTypes.UUID,
+        allowNull: false,
+      },
+    },
+    {
+      sequelize,
+      timestamps: false,
+      indexes: [
+        {
+          fields: ['scheduleId'],
+        },
+      ],
+    }
+  );
+  return Availability;
+};

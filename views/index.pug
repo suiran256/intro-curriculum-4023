@@ -1,0 +1,21 @@
+extends layout
+
+block content
+  div.jumbotron.my-3
+    h1.display-4 title
+    p.lead explanation
+  if user
+    div
+      a(href="/schedules/new").btn.btn-info createSchedule
+    - var hasSchedule = schedules.length > 0
+    if hasSchedule
+      h3.my-3 schedulesShow
+      table.table
+        tr
+          th scheduleName
+          th updateAt
+        each schedule in schedules
+          tr
+            td
+              a(href=`/schedules/${schedule.scheduleId}`) #{schedule.scheduleName}
+            td #{schedule.formattedUpdatedAt}
