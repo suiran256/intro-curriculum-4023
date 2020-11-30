@@ -49,7 +49,7 @@ describe('/logout', () => {
     request(app)
       .get('/logout')
       .expect('Location', '/')
-      .expect(302, done)
+      .expect(302)
       .end((err, res) => {
         assert.doesNotMatch(res.text, /testuser/);
 
@@ -61,14 +61,15 @@ describe('/logout', () => {
 
 //const PostWithCsrfTest = {
 const createTet = {
-  showPath: 'schedules/new',
+  showPath: '/schedules/new',
   postPath: '/schedules',
   postData: {
     scheduleName: 'scheduleName1',
     memo: 'memo1',
     candidates: 'can1',
   },
-  fnValidate: function (err, res) {
+  fnValidate: function (res) {
+    let err = null;
     const schedulePath = res.headers.location;
     const scheduleId = schedulePath.match(/schedules\/(.*?)(\/|$)/)[1];
     request(app)
@@ -77,8 +78,11 @@ const createTet = {
       .expect(/scheduleName1/)
       .expect(/memo1/)
       .expect(/can1/)
-      .expect(200);
-    return { scheduleId: scheduleId };
+      .expect(200)
+      .end((err_) => {
+        err = err_;
+      });
+    return { err: err, ret: { scheduleId: scheduleId } };
   },
 };
 
@@ -87,7 +91,7 @@ const promiseCreateSchedule = function (test) {
     User.upsert({ userId: 0, username: 'testuser' })
       .then(() => {
         request(app)
-          .get('/schedules/new')
+          .get(test.showPath)
           .end((err, res) => {
             if (err) reject(err);
             const setCookie = res.headers['set-cookie'];
@@ -95,16 +99,11 @@ const promiseCreateSchedule = function (test) {
             request(app)
               .post(test.postPath)
               .set('cookie', setCookie)
-              .send({
-                scheduleName: 'scheduleName1',
-                memo: 'memo1',
-                candidates: 'can1',
-                _csrf: csrf,
-              })
+              .send(Object.assign({}, test.postData, { _csrf: csrf }))
               .end((err, res) => {
                 if (err) reject(err);
-                const ret = test.fnValidate(err, res);
-                if (err) reject(err);
+                let { e, ret } = test.fnValidate(res);
+                if (e) reject(e);
                 resolve(ret);
               });
           });
@@ -223,19 +222,18 @@ const promiseEditSchedule = ({ scheduleId }) => {
               .then((schedule) => {
                 assert.strictEqual(schedule.scheduleName, 'scheduleName1kai');
                 assert.strictEqual(schedule.memo, 'memo1kai');
-                Candidate.findAll({
+                return Candidate.findAll({
                   where: { scheduleId: scheduleId },
                   order: [['"candidateId"', 'ASC']],
-                })
-                  .then((candidates) => {
-                    assert.strictEqual(candidates.length, 2);
-                    assert.strictEqual(candidates[0].candidateName, 'can1');
-                    assert.strictEqual(candidates[1].candidateName, 'can2');
+                });
+              })
+              .then((candidates) => {
+                assert.strictEqual(candidates.length, 2);
+                assert.strictEqual(candidates[0].candidateName, 'can1');
+                assert.strictEqual(candidates[1].candidateName, 'can2');
 
-                    if (err) reject(err);
-                    resolve({ scheduleId: scheduleId });
-                  })
-                  .catch(reject);
+                if (err) reject(err);
+                resolve({ scheduleId: scheduleId });
               })
               .catch(reject);
           });
