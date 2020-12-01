@@ -17,6 +17,7 @@ module.exports = {
         allowNull: false,
       },
     });
+    await queryInterface.addIndex('Candidates', ['scheduleId']);
   },
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('Candidates');

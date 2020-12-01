@@ -20,7 +20,34 @@ module.exports = {
       scheduleId: {
         type: Sequelize.UUID,
         allowNull: false,
+        // references: {
+        //   model: {
+        //     tableName: 'Schedules',
+        //   },
+        //   key: 'scheduleId',
+        // },
       },
+    });
+    await queryInterface.addIndex('Availabilities', ['scheduleId']);
+    await queryInterface.addConstraint('Availabilities', {
+      fields: ['userId'],
+      type: 'foreign key',
+      references: {
+        table: 'Users',
+        field: 'userId',
+      },
+      onDelete: 'cascade',
+      onUpdate: 'cascade',
+    });
+    await queryInterface.addConstraint('Availabilities', {
+      fields: ['candidateId'],
+      type: 'foreign key',
+      references: {
+        table: 'Candidates',
+        field: 'candidateId',
+      },
+      onDelete: 'cascade',
+      onUpdate: 'cascade',
     });
   },
   down: async (queryInterface, Sequelize) => {
