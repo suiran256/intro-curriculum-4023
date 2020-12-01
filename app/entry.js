@@ -4,7 +4,8 @@ const global = Function('return this;')();
 global.jQuery = $;
 import bootstrap from 'bootstrap';
 
-$('.availability-toggle-button').each((i, e) => {
+$('.availability-toggle-button')[0].forEach((e, i) => {
+  //$('.availability-toggle-button').each((i, e) => {
   const button = $(e);
   button.click(() => {
     const scheduleId = button.data('schedule-id');
