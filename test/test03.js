@@ -209,7 +209,7 @@ const promiseEditSchedule = ({ scheduleId }) => {
           .send({
             scheduleName: 'scheduleName1kai',
             memo: 'memo1kai',
-            candidates: 'can2',
+            candidates: 'can2\ncan3',
             _csrf: csrf,
           })
           .end((err) => {
@@ -224,9 +224,10 @@ const promiseEditSchedule = ({ scheduleId }) => {
                 });
               })
               .then((candidates) => {
-                assert.strictEqual(candidates.length, 2);
+                assert.strictEqual(candidates.length, 3);
                 assert.strictEqual(candidates[0].candidateName, 'can1');
                 assert.strictEqual(candidates[1].candidateName, 'can2');
+                assert.strictEqual(candidates[2].candidateName, 'can3');
 
                 if (err) reject(err);
                 resolve({ scheduleId: scheduleId });
