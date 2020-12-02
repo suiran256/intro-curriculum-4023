@@ -9,7 +9,6 @@ const deleteScheduleAggregate = require('../routes/schedules')
 const request = require('supertest');
 const passportStub = require('passport-stub');
 const assert = require('assert');
-const { resolve } = require('url');
 
 before(async () => {
   await db.sequelize.sync();
