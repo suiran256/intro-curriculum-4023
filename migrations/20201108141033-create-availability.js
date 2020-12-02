@@ -31,6 +31,7 @@ module.exports = {
     await queryInterface.addIndex('Availabilities', ['scheduleId']);
     await queryInterface.addConstraint('Availabilities', {
       fields: ['userId'],
+      name: 'Availabilities_userId_Users_fk',
       type: 'foreign key',
       references: {
         table: 'Users',
@@ -41,6 +42,7 @@ module.exports = {
     });
     await queryInterface.addConstraint('Availabilities', {
       fields: ['candidateId'],
+      name: 'Availabilities_candidateId_Candidates_fk',
       type: 'foreign key',
       references: {
         table: 'Candidates',
@@ -51,6 +53,14 @@ module.exports = {
     });
   },
   down: async (queryInterface, Sequelize) => {
+    // await queryInterface.removeConstraint(
+    //   'Availabilities',
+    //   'Availabilities_candidateId_Candidates_fk'
+    // );
+    // await queryInterface.removeConstraint(
+    //   'Availabilities',
+    //   'Availabilities_userId_Users_fk'
+    // );
     await queryInterface.dropTable('Availabilities');
   },
 };

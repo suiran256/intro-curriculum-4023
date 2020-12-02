@@ -6,7 +6,7 @@ var http = require('http');
 var port = normalizePort(process.env.PORT || '3000');
 
 var mainFunc = async () => {
-  await require('../models/index').sequelize.sync();
+  //await require('../models/index').sequelize.sync();
   var app = require('../app');
   debug = require('debug')('schedule-arranger:server');
 

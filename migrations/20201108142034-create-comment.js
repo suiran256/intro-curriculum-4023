@@ -19,6 +19,7 @@ module.exports = {
     });
     await queryInterface.addConstraint('Comments', {
       fields: ['userId'],
+      name: 'Comments_userId_Users_fk',
       type: 'foreign key',
       references: {
         table: 'Users',
@@ -29,6 +30,10 @@ module.exports = {
     });
   },
   down: async (queryInterface, Sequelize) => {
+    // await queryInterface.removeConstraint(
+    //   'Comments',
+    //   'Comments_userId_Users_fk'
+    // );
     await queryInterface.dropTable('Comments');
   },
 };
