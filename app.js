@@ -34,7 +34,8 @@ var schedulesRouter = require('./routes/schedules');
 var availabilitiesRouter = require('./routes/availabilities');
 var commentsRouter = require('./routes/comments');
 
-const db = require('./models/index');
+//const db = require('./models/index');
+const db = require('./models');
 const User = db.User;
 
 app.use(helmet());

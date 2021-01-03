@@ -31,7 +31,7 @@ module.exports = {
     await queryInterface.addIndex('Availabilities', ['scheduleId']);
     await queryInterface.addConstraint('Availabilities', {
       fields: ['userId'],
-      name: 'Availabilities_userId_Users_fk',
+//      name: 'Availabilities_userId_Users_fk',
       type: 'foreign key',
       references: {
         table: 'Users',
@@ -42,7 +42,7 @@ module.exports = {
     });
     await queryInterface.addConstraint('Availabilities', {
       fields: ['candidateId'],
-      name: 'Availabilities_candidateId_Candidates_fk',
+ //     name: 'Availabilities_candidateId_Candidates_fk',
       type: 'foreign key',
       references: {
         table: 'Candidates',

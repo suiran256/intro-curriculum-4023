@@ -258,7 +258,7 @@ describe('/schedules/:scheduleId?edit=1', () => {
   });
 });
 
-const promiseDeleteSchedule = ({ scheduleId: scheduleId }) => {
+const promiseDeleteSchedule = ({ scheduleId }) => {
   return new Promise((resolve, reject) => {
     request(app)
       .get(`/schedules/${scheduleId}/edit`)
