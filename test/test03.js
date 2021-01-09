@@ -10,9 +10,9 @@ const request = require('supertest');
 const passportStub = require('passport-stub');
 const assert = require('assert');
 
-before(async () => {
-  await db.sequelize.sync();
-});
+//before(async () => {
+//  await db.sequelize.sync();
+//});
 
 describe('/login', () => {
   before(() => {
@@ -105,7 +105,7 @@ const promiseCreateSchedule = function (test) {
               });
           });
       })
-      .catch(reject);
+      //.catch(reject);
   });
 };
 const promiseUpdateAvailability = function ({ scheduleId }) {
@@ -127,13 +127,13 @@ const promiseUpdateAvailability = function ({ scheduleId }) {
                 assert.strictEqual(availabilities.length, 1);
                 assert.strictEqual(availabilities[0].availability, 2);
 
-                if (err) reject(err);
+                //if (err) reject(err);
                 resolve({ scheduleId: scheduleId });
               })
-              .catch(reject);
+              //.catch(reject);
           });
       })
-      .catch(reject);
+     // .catch(reject);
   });
 };
 
@@ -150,10 +150,10 @@ const promiseUpdateComment = ({ scheduleId }) => {
             assert.strictEqual(comments.length, 1);
             assert.strictEqual(comments[0].comment, 'comment1');
 
-            if (err) reject(err);
+       //     if (err) reject(err);
             resolve({ scheduleId: scheduleId });
           })
-          .catch(reject);
+         // .catch(reject);
       });
   });
 };
@@ -173,7 +173,7 @@ describe('/schedules', () => {
       .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
       })
-      .catch(done);
+   //   .catch(done);
   });
 
   it('updateAvailability', (done) => {
@@ -182,7 +182,7 @@ describe('/schedules', () => {
       .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
       })
-      .catch(done);
+     // .catch(done);
   });
 
   it('updateComment', (done) => {
@@ -191,7 +191,7 @@ describe('/schedules', () => {
       .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
       })
-      .catch(done);
+  //    .catch(done);
   });
 });
 
@@ -229,10 +229,10 @@ const promiseEditSchedule = ({ scheduleId }) => {
                 assert.strictEqual(candidates[1].candidateName, 'can2');
                 assert.strictEqual(candidates[2].candidateName, 'can3');
 
-                if (err) reject(err);
+    //            if (err) reject(err);
                 resolve({ scheduleId: scheduleId });
               })
-              .catch(reject);
+      //        .catch(reject);
           });
       });
   });
@@ -254,7 +254,7 @@ describe('/schedules/:scheduleId?edit=1', () => {
       .then(({ scheduleId }) => {
         deleteScheduleAggregate(scheduleId, done);
       })
-      .catch(done);
+    //  .catch(done);
   });
 });
 
@@ -291,10 +291,10 @@ const promiseDeleteSchedule = ({ scheduleId }) => {
             });
             Promise.all([p1, p2, p3, p4])
               .then(() => {
-                if (err) reject(err);
+      //          if (err) reject(err);
                 resolve();
               })
-              .catch(reject);
+        //      .catch(reject);
           });
       });
   });
@@ -316,6 +316,6 @@ describe('/schedules/:scheduleId?delete=1', () => {
       .then(promiseUpdateComment)
       .then(promiseDeleteSchedule)
       .then(() => done())
-      .catch(done);
+   //   .catch(done);
   });
 });
