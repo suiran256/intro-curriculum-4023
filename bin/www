@@ -19,12 +19,7 @@ var mainFunc = async () => {
   server.on('listening', onListening);
 };
 
-
-try {
-  mainFunc();
-} catch (err) {
-  console.log(err);
-}
+mainFunc().catch(console.log);
 /**
  * Normalize a port into a number, string, or false.
  */
