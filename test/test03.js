@@ -48,7 +48,7 @@ describe('/logout', () => {
       .expect('Location', '/')
       .expect(302)
       .end((err, res) => {
-        if(err) {throw err;} 
+        if(err) {return done(err);} 
         assert.doesNotMatch(res.text, /testuser/);
         done();
       });
