@@ -292,8 +292,8 @@ const promiseDeleteSchedule = ({ scheduleId }) => {
               .then(() => {
       //          if (err) reject(err);
                 resolve();
-              })
-        //      .catch(reject);
+              }).catch(err=>{console.log(err);reject(err);});
+//              .catch(reject);
           });
       });
   });
@@ -315,6 +315,5 @@ describe('/schedules/:scheduleId?delete=1', () => {
       .then(promiseUpdateComment)
       .then(promiseDeleteSchedule)
       .then(() => done())
-   //   .catch(done);
   });
 });
