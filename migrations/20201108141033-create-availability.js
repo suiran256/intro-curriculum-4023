@@ -1,37 +1,43 @@
 'use strict';
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('Availabilities', {
-      candidateId: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
-        allowNull: false,
-      },
-      userId: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
-        allowNull: false,
-      },
-      availability: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        defaultValue: 0,
-      },
-      scheduleId: {
-        type: Sequelize.UUID,
-        allowNull: false,
-        // references: {
-        //   model: {
-        //     tableName: 'Schedules',
-        //   },
-        //   key: 'scheduleId',
-        // },
-      },
-    });
+    //const transaction = await queryInterface.sequelize.transaction();
+    //try {
+    await queryInterface.createTable(
+      'Availabilities',
+      {
+        candidateId: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          allowNull: false,
+        },
+        userId: {
+          type: Sequelize.INTEGER,
+          primaryKey: true,
+          allowNull: false,
+        },
+        availability: {
+          type: Sequelize.INTEGER,
+          allowNull: false,
+          defaultValue: 0,
+        },
+        scheduleId: {
+          type: Sequelize.UUID,
+          allowNull: false,
+          // references: {
+          //   model: {
+          //     tableName: 'Schedules',
+          //   },
+          //   key: 'scheduleId',
+          // },
+        },
+      }
+      // { transaction: transaction }
+    );
     await queryInterface.addIndex('Availabilities', ['scheduleId']);
     await queryInterface.addConstraint('Availabilities', {
       fields: ['userId'],
-//      name: 'Availabilities_userId_Users_fk',
+      //      name: 'Availabilities_userId_Users_fk',
       type: 'foreign key',
       references: {
         table: 'Users',
@@ -42,7 +48,7 @@ module.exports = {
     });
     await queryInterface.addConstraint('Availabilities', {
       fields: ['candidateId'],
- //     name: 'Availabilities_candidateId_Candidates_fk',
+      //     name: 'Availabilities_candidateId_Candidates_fk',
       type: 'foreign key',
       references: {
         table: 'Candidates',
@@ -51,6 +57,12 @@ module.exports = {
       onDelete: 'cascade',
       onUpdate: 'cascade',
     });
+    //await transaction.rollback();
+    //await transaction.commit();
+    //} catch (err) {
+    //await transaction.rollback();
+    //  throw err;
+    //}
   },
   down: async (queryInterface, Sequelize) => {
     // await queryInterface.removeConstraint(
