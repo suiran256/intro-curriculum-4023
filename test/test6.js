@@ -1,6 +1,5 @@
 /* eslint-env mocha */
 /* eslint-disable no-unused-vars */
-// 決め打ち : userId:0,username:'testuser'
 'use strict';
 const request = require('supertest');
 const passportStub = require('passport-stub');
@@ -26,7 +25,7 @@ function fnBeforeDefault(done) {
       passportStub.install(app);
       passportStub.login({ id: 0, username: 'testuser' });
       console.log('********* before finished');
-      done();
+      return done();
     })
     .catch(done);
 }
@@ -37,34 +36,23 @@ function fnAfterDefault(done) {
       passportStub.logout();
       passportStub.uninstall(app);
       console.log('********* after finished');
-      done();
+      return done();
     })
     .catch(done);
 }
 function fnAfterEachDefault(done) {
   Promise.all(
-    this.arrayScheduleIdForDelete.map((s) =>
-      deleteScheduleAggregate(s, (err) => {
-        if (err) {
-          throw err;
-        } else {
-          return;
-        }
-      })
+    this.scheduleIdForDeleteArray.map((s) =>
+      deleteScheduleAggregate(s, () => {})
     )
   )
     .then(() => {
-      this.arrayScheduleIdForDelete = [];
+      this.scheduleIdForDeleteArray = [];
       console.log('********* afterEach finished');
-      done();
+      return done();
     })
     .catch(done);
 }
-
-// function test(done) {
-//   console.log('********* testTuuka');
-//   done();
-// }
 
 function SObj({
   fnBefore = fnBeforeDefault,
@@ -74,10 +62,10 @@ function SObj({
   this.fnBefore = fnBefore;
   this.fnAfter = fnAfter;
   this.fnAfterEach = fnAfterEach;
-  this.arrayScheduleIdForDelete = [];
+  this.scheduleIdForDeleteArray = [];
 }
 
-const promiseCreateSchedule = async () => {
+const createScheduleAsync = async () => {
   let res = null;
   let resObj = null;
   resObj = request(app).get('/schedules/new');
@@ -88,6 +76,7 @@ const promiseCreateSchedule = async () => {
     scheduleName: 'scheduleName1',
     memo: 'memo1',
     candidates: 'can1',
+    createdBy: 0,
     _csrf: csrf,
   });
   res = await promisifyResEnd(resObj);
@@ -102,7 +91,8 @@ const promiseCreateSchedule = async () => {
   assert.strictEqual(res.status, 200);
   return { scheduleId };
 };
-const wrapPromiseUpdateAvailability = ({ scheduleId }) => {
+
+const updateAvailabilityAsync = ({ scheduleId }) => {
   return (async () => {
     let res = null;
     let resObj = null;
@@ -127,6 +117,100 @@ const wrapPromiseUpdateAvailability = ({ scheduleId }) => {
   })();
 };
 
+const updateCommentAsync = ({ scheduleId }) => {
+  return (async () => {
+    let res = null;
+    let resObj = null;
+    resObj = request(app)
+      .post(`/schedules/${scheduleId}/users/${0}/comments`)
+      .send({ comment: 'comment1' });
+    res = await promisifyResEnd(resObj);
+    assert.match(res.text, /{"status":"OK","comment":"comment1"}/);
+    const comments = await Comment.findAll({
+      where: { scheduleId: scheduleId },
+    });
+    assert.strictEqual(comments.length, 1);
+    assert.strictEqual(comments[0].comment, 'comment1');
+    return { scheduleId };
+  })();
+};
+
+const editScheduleAsync = ({ scheduleId }) => {
+  return (async () => {
+    let res = null;
+    let resObj = null;
+    resObj = request(app).get(`/schedules/${scheduleId}/edit`);
+    res = await promisifyResEnd(resObj);
+    const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
+    const setCookie = res.headers['set-cookie'];
+    resObj = request(app)
+      .post(`/schedules/${scheduleId}?edit=1`)
+      .set('cookie', setCookie)
+      .send({
+        scheduleName: 'scheduleName1kai',
+        memo: 'memo1kai',
+        candidates: 'can2\ncan3',
+        _csrf: csrf,
+      });
+    res = await promisifyResEnd(resObj);
+    const schedulePath = res.headers.location;
+    assert.strictEqual(schedulePath, `/schedules/${scheduleId}`);
+    assert.strictEqual(res.status, 302);
+    resObj = request(app).get(schedulePath);
+    res = await promisifyResEnd(resObj);
+    assert.match(res.text, /testuser/);
+    assert.match(res.text, /scheduleName1kai/);
+    assert.match(res.text, /memo1kai/);
+    assert.match(res.text, /can1/);
+    assert.match(res.text, /can2/);
+    assert.match(res.text, /can3/);
+    assert.strictEqual(res.status, 200);
+    return { scheduleId };
+  })();
+};
+
+const deleteScheduleAsync = ({ scheduleId }) => {
+  return (async () => {
+    let res = null;
+    let resObj = null;
+    resObj = request(app).get(`/schedules/${scheduleId}/edit`);
+    res = await promisifyResEnd(resObj);
+    const csrf = res.text.match(/name="_csrf" value="(.*?)"/)[1];
+    const setCookie = res.headers['set-cookie'];
+    resObj = request(app)
+      .post(`/schedules/${scheduleId}?delete=1`)
+      .set('cookie', setCookie)
+      .send({
+        _csrf: csrf,
+      });
+    res = await promisifyResEnd(resObj);
+    const p1 = Availability.findAll({
+      where: { scheduleId: scheduleId },
+    }).then((availabilities) => {
+      assert.strictEqual(availabilities.length, 0);
+      return;
+    });
+    const p2 = Candidate.findAll({ where: { scheduleId: scheduleId } }).then(
+      (candidates) => {
+        assert.strictEqual(candidates.length, 0);
+        return;
+      }
+    );
+    const p3 = Comment.findAll({ where: { scheduleId: scheduleId } }).then(
+      (comments) => {
+        assert.strictEqual(comments.length, 0);
+        return;
+      }
+    );
+    const p4 = Schedule.findByPk(scheduleId).then((schedule) => {
+      assert.strictEqual(!!schedule, false);
+      return;
+    });
+    await Promise.all([p1, p2, p3, p4]);
+    return;
+  })();
+};
+
 describe('/schedules', () => {
   const sObj = new SObj();
   before(sObj.fnBefore.bind(sObj));
@@ -134,24 +218,66 @@ describe('/schedules', () => {
   afterEach(sObj.fnAfterEach.bind(sObj));
 
   it('createSchedule', (done) => {
-    promiseCreateSchedule()
+    createScheduleAsync()
       .then(({ scheduleId }) => {
-        sObj.arrayScheduleIdForDelete.push(scheduleId);
+        sObj.scheduleIdForDeleteArray.push(scheduleId);
       })
-      .then(promiseCreateSchedule)
+      .then(createScheduleAsync)
       .then(({ scheduleId }) => {
-        sObj.arrayScheduleIdForDelete.push(scheduleId);
-        done();
+        sObj.scheduleIdForDeleteArray.push(scheduleId);
+        return done();
       })
       .catch(done);
   });
   it('updateAvailability', (done) => {
-    promiseCreateSchedule()
-      .then(wrapPromiseUpdateAvailability)
+    createScheduleAsync()
+      .then(updateAvailabilityAsync)
       .then(({ scheduleId }) => {
-        sObj.arrayScheduleIdForDelete.push(scheduleId);
-        done();
+        sObj.scheduleIdForDeleteArray.push(scheduleId);
+        return done();
       })
+      .catch(done);
+  });
+  it('updateComment', (done) => {
+    createScheduleAsync()
+      .then(updateCommentAsync)
+      .then(({ scheduleId }) => {
+        sObj.scheduleIdForDeleteArray.push(scheduleId);
+        return done();
+      })
+      .catch(done);
+  });
+});
+
+describe('/schedules/:scheduleId?edit=1', () => {
+  const sObj = new SObj();
+  before(sObj.fnBefore.bind(sObj));
+  after(sObj.fnAfter.bind(sObj));
+  afterEach(sObj.fnAfterEach.bind(sObj));
+
+  it('editSchedule', (done) => {
+    createScheduleAsync()
+      .then(editScheduleAsync)
+      .then(({ scheduleId }) => {
+        sObj.scheduleIdForDeleteArray.push(scheduleId);
+        return done();
+      })
+      .catch(done);
+  });
+});
+
+describe('/schedules/:scheduleId?delete=1', () => {
+  const sObj = new SObj();
+  before(sObj.fnBefore.bind(sObj));
+  after(sObj.fnAfter.bind(sObj));
+  afterEach(sObj.fnAfterEach.bind(sObj));
+
+  it('deleteSchedule', (done) => {
+    createScheduleAsync()
+      .then(updateAvailabilityAsync)
+      .then(updateCommentAsync)
+      .then(deleteScheduleAsync)
+      .then(() => done())
       .catch(done);
   });
 });

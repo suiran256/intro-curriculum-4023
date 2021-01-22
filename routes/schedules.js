@@ -74,35 +74,7 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
       });
     })
     .then((availabilities) => {
-      const availabilityMapMap2 = new Map();
-      let latestUserId = null;
-      let array = null;
-      let a = null;
-      const avail = Array.from(availabilities);
-      const availabilitiesLength = avail.length;
-      let cnt = 1;
-      while (cnt <= availabilitiesLength) {
-        array = [];
-        a = avail[cnt];
-        latestUserId = a.User.userId;
-        for (let c of storedCandidates) {
-          if (c.candidateId === a.candidateId) {
-            array.push(a.availability);
-            cnt += 1;
-            a = avail[cnt];
-            if (a.User.userId !== latestUserId) {
-              availabilityMapMap2.set(latestUserId, array);
-              break;
-            }
-          } else {
-            array.push(0);
-          }
-        }
-      }
-      //console.log(availabilityMapMap2.length);
-      // });
-
-      //出欠 MapMap(キー:ユーザー ID, 値:出欠Map(キー:候補 ID, 値:出欠)) を作成する
+      // 出欠 MapMap(キー:ユーザー ID, 値:出欠Map(キー:候補 ID, 値:出欠)) を作成する
       const availabilityMapMap = new Map(); // key: userId, value: Map(key: candidateId, availability)
       availabilities.forEach((a) => {
         const map = availabilityMapMap.get(a.User.userId) || new Map();
@@ -285,7 +257,7 @@ function deleteScheduleAggregate(scheduleId, done, err) {
     })
     .then(() => {
       if (err) return done(err);
-      done();
+      return done();
     });
 }
 
