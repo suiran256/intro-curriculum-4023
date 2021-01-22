@@ -20,32 +20,61 @@ const deleteScheduleAggregate = require('../routes/schedules')
 function promisifyResEnd(resObj) {
   return util.promisify(resObj.end).bind(resObj)();
 }
-function fnBefore(done) {
-  User.upsert({ userId: 0, username: 'testuser' }).then(() => {
-    passportStub.install(app);
-    passportStub.login({ id: 0, username: 'testuser' });
-    done();
-  });
+function fnBeforeDefault(done) {
+  User.upsert({ userId: 0, username: 'testuser' })
+    .then(() => {
+      passportStub.install(app);
+      passportStub.login({ id: 0, username: 'testuser' });
+      console.log('********* before finished');
+      done();
+    })
+    .catch(done);
 }
-function fnAfter(done) {
+function fnAfterDefault(done) {
   User.findByPk(0)
     .then((u) => u.destroy())
     .then(() => {
       passportStub.logout();
       passportStub.uninstall(app);
+      console.log('********* after finished');
       done();
-    });
+    })
+    .catch(done);
 }
-function fnAfterEach(obj) {
-  return function (done) {
-    if (this.scheduleIdForDelete) {
-      const scheduleId = this.scheduleIdForDelete;
-      this.scheduleIdForDelete = null;
-      deleteScheduleAggregate(scheduleId, done);
-    } else {
+function fnAfterEachDefault(done) {
+  Promise.all(
+    this.arrayScheduleIdForDelete.map((s) =>
+      deleteScheduleAggregate(s, (err) => {
+        if (err) {
+          throw err;
+        } else {
+          return;
+        }
+      })
+    )
+  )
+    .then(() => {
+      this.arrayScheduleIdForDelete = [];
+      console.log('********* afterEach finished');
       done();
-    }
-  }.bind(obj);
+    })
+    .catch(done);
+}
+
+// function test(done) {
+//   console.log('********* testTuuka');
+//   done();
+// }
+
+function SObj({
+  fnBefore = fnBeforeDefault,
+  fnAfter = fnAfterDefault,
+  fnAfterEach = fnAfterEachDefault,
+} = {}) {
+  this.fnBefore = fnBefore;
+  this.fnAfter = fnAfter;
+  this.fnAfterEach = fnAfterEach;
+  this.arrayScheduleIdForDelete = [];
 }
 
 const promiseCreateSchedule = async () => {
@@ -99,15 +128,19 @@ const wrapPromiseUpdateAvailability = ({ scheduleId }) => {
 };
 
 describe('/schedules', () => {
-  const storedObj = { scheduleIdForDelete: null };
-  before(fnBefore);
-  after(fnAfter);
-  afterEach(fnAfterEach(storedObj));
+  const sObj = new SObj();
+  before(sObj.fnBefore.bind(sObj));
+  after(sObj.fnAfter.bind(sObj));
+  afterEach(sObj.fnAfterEach.bind(sObj));
 
   it('createSchedule', (done) => {
     promiseCreateSchedule()
       .then(({ scheduleId }) => {
-        storedObj.scheduleIdForDelete = scheduleId;
+        sObj.arrayScheduleIdForDelete.push(scheduleId);
+      })
+      .then(promiseCreateSchedule)
+      .then(({ scheduleId }) => {
+        sObj.arrayScheduleIdForDelete.push(scheduleId);
         done();
       })
       .catch(done);
@@ -116,7 +149,7 @@ describe('/schedules', () => {
     promiseCreateSchedule()
       .then(wrapPromiseUpdateAvailability)
       .then(({ scheduleId }) => {
-        storedObj.scheduleIdForDelete = scheduleId;
+        sObj.arrayScheduleIdForDelete.push(scheduleId);
         done();
       })
       .catch(done);

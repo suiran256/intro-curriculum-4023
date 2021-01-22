@@ -80,18 +80,15 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
       let a = null;
       const avail = Array.from(availabilities);
       const availabilitiesLength = avail.length;
-      console.log('************' + availabilitiesLength);
       let cnt = 1;
       while (cnt <= availabilitiesLength) {
         array = [];
         a = avail[cnt];
-        console.log(a);
         latestUserId = a.User.userId;
         for (let c of storedCandidates) {
           if (c.candidateId === a.candidateId) {
             array.push(a.availability);
             cnt += 1;
-            console.log('+++++++++' + cnt);
             a = avail[cnt];
             if (a.User.userId !== latestUserId) {
               availabilityMapMap2.set(latestUserId, array);
@@ -259,7 +256,8 @@ function deleteScheduleAggregate(scheduleId, done, err) {
     );
   });
 
-  Availability.findAll({
+  //Availability.findAll({
+  return Availability.findAll({
     where: { scheduleId: scheduleId },
   })
     .then((availabilities) => {
