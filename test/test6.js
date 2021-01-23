@@ -54,15 +54,20 @@ function fnAfterEachDefault(done) {
     .catch(done);
 }
 
+function test(done) {
+  console.log('**************** test');
+  return done();
+}
+
 function SObj({
   fnBefore = fnBeforeDefault,
   fnAfter = fnAfterDefault,
   fnAfterEach = fnAfterEachDefault,
 } = {}) {
   this.scheduleIdForDeleteArray = [];
-  SObj.prototype.fnBefore = fnBefore.bind(this);
-  SObj.prototype.fnAfter = fnAfter.bind(this);
-  SObj.prototype.fnAfterEach = fnAfterEach.bind(this);
+  this.fnBefore = fnBefore.bind(this);
+  this.fnAfter = fnAfter.bind(this);
+  this.fnAfterEach = fnAfterEach.bind(this);
 }
 
 const createScheduleAsync = async () => {
@@ -223,20 +228,22 @@ describe('/schedules', () => {
   });
   it('updateAvailability', (done) => {
     createScheduleAsync()
-      .then(updateAvailabilityAsync)
       .then(({ scheduleId }) => {
         sObj.scheduleIdForDeleteArray.push(scheduleId);
-        return done();
+        return { scheduleId };
       })
+      .then(updateAvailabilityAsync)
+      .then(() => done())
       .catch(done);
   });
   it('updateComment', (done) => {
     createScheduleAsync()
-      .then(updateCommentAsync)
       .then(({ scheduleId }) => {
         sObj.scheduleIdForDeleteArray.push(scheduleId);
-        return done();
+        return { scheduleId };
       })
+      .then(updateCommentAsync)
+      .then(() => done())
       .catch(done);
   });
 });
@@ -249,11 +256,12 @@ describe('/schedules/:scheduleId?edit=1', () => {
 
   it('editSchedule', (done) => {
     createScheduleAsync()
-      .then(editScheduleAsync)
       .then(({ scheduleId }) => {
         sObj.scheduleIdForDeleteArray.push(scheduleId);
-        return done();
+        return { scheduleId };
       })
+      .then(editScheduleAsync)
+      .then(() => done())
       .catch(done);
   });
 });
@@ -266,10 +274,17 @@ describe('/schedules/:scheduleId?delete=1', () => {
 
   it('deleteSchedule', (done) => {
     createScheduleAsync()
+      .then(({ scheduleId }) => {
+        sObj.scheduleIdForDeleteArray.push(scheduleId);
+        return { scheduleId };
+      })
       .then(updateAvailabilityAsync)
       .then(updateCommentAsync)
       .then(deleteScheduleAsync)
-      .then(() => done())
+      .then(() => {
+        sObj.scheduleIdForDeleteArray = [];
+        return done();
+      })
       .catch(done);
   });
 });
