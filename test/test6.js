@@ -54,10 +54,10 @@ function fnAfterEachDefault(done) {
     .catch(done);
 }
 
-function test(done) {
-  console.log('**************** test');
-  return done();
-}
+// function test(done) {
+//   console.log('**************** test');
+//   return done();
+// }
 
 function SObj({
   fnBefore = fnBeforeDefault,
