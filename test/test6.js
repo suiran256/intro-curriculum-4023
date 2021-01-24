@@ -123,7 +123,7 @@ const updateAvailabilityAsync = async ({ scheduleId }) => {
     )
     .send({ availability: 2 });
   res = await promisifyResEnd(resObj);
-  assert.match(res.text, /{"status":"OK","availability":2}/);
+  assert.strictEqual(res.text, '{"status":"OK","availability":2}');
   const availabilities = await Availability.findAll({
     where: { scheduleId: scheduleId },
   });
@@ -139,7 +139,7 @@ const updateCommentAsync = async ({ scheduleId }) => {
     .post(`/schedules/${scheduleId}/users/${0}/comments`)
     .send({ comment: 'comment1' });
   res = await promisifyResEnd(resObj);
-  assert.match(res.text, /{"status":"OK","comment":"comment1"}/);
+  assert.strictEqual(res.text, '{"status":"OK","comment":"comment1"}');
   const comments = await Comment.findAll({
     where: { scheduleId: scheduleId },
   });
