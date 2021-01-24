@@ -25,7 +25,7 @@ function fnBeforeDefault(done) {
       passportStub.install(app);
       passportStub.login({ id: 0, username: 'testuser' });
       console.log('********* before finished');
-      return done();
+      done();
     })
     .catch(done);
 }
@@ -36,7 +36,7 @@ function fnAfterDefault(done) {
       passportStub.logout();
       passportStub.uninstall(app);
       console.log('********* after finished');
-      return done();
+      done();
     })
     .catch(done);
 }
@@ -49,7 +49,7 @@ function fnAfterEachDefault(done) {
     .then(() => {
       this.scheduleIdForDeleteArray = [];
       console.log('********* afterEach finished');
-      return done();
+      done();
     })
     .catch(done);
 }
@@ -68,6 +68,21 @@ function SObj({
   this.fnBefore = fnBefore.bind(this);
   this.fnAfter = fnAfter.bind(this);
   this.fnAfterEach = fnAfterEach.bind(this);
+
+  this.fnPushScheduleIdForDelete = ({ scheduleId }) => {
+    this.scheduleIdForDeleteArray.push(scheduleId);
+    return { scheduleId };
+  };
+  this.fnResetScheduleIdForDelete = ({ scheduleId } = {}) => {
+    this.scheduleIdForDeleteArray = [];
+    return { scheduleId };
+  };
+  this.fnSetScheduleIdForDelete = function (array = []) {
+    return function ({ scheduleId } = {}) {
+      this.scheduleIdForDeleteArray = array;
+      return { scheduleId };
+    }.bind(this);
+  };
 }
 
 const createScheduleAsync = async () => {
@@ -81,7 +96,6 @@ const createScheduleAsync = async () => {
     scheduleName: 'scheduleName1',
     memo: 'memo1',
     candidates: 'can1',
-    createdBy: 0,
     _csrf: csrf,
   });
   res = await promisifyResEnd(resObj);
@@ -118,22 +132,20 @@ const updateAvailabilityAsync = async ({ scheduleId }) => {
   return { scheduleId };
 };
 
-const updateCommentAsync = ({ scheduleId }) => {
-  return (async () => {
-    let res = null;
-    let resObj = null;
-    resObj = request(app)
-      .post(`/schedules/${scheduleId}/users/${0}/comments`)
-      .send({ comment: 'comment1' });
-    res = await promisifyResEnd(resObj);
-    assert.match(res.text, /{"status":"OK","comment":"comment1"}/);
-    const comments = await Comment.findAll({
-      where: { scheduleId: scheduleId },
-    });
-    assert.strictEqual(comments.length, 1);
-    assert.strictEqual(comments[0].comment, 'comment1');
-    return { scheduleId };
-  })();
+const updateCommentAsync = async ({ scheduleId }) => {
+  let res = null;
+  let resObj = null;
+  resObj = request(app)
+    .post(`/schedules/${scheduleId}/users/${0}/comments`)
+    .send({ comment: 'comment1' });
+  res = await promisifyResEnd(resObj);
+  assert.match(res.text, /{"status":"OK","comment":"comment1"}/);
+  const comments = await Comment.findAll({
+    where: { scheduleId: scheduleId },
+  });
+  assert.strictEqual(comments.length, 1);
+  assert.strictEqual(comments[0].comment, 'comment1');
+  return { scheduleId };
 };
 
 const editScheduleAsync = async ({ scheduleId }) => {
@@ -216,32 +228,22 @@ describe('/schedules', () => {
 
   it('createSchedule', (done) => {
     createScheduleAsync()
-      .then(({ scheduleId }) => {
-        sObj.scheduleIdForDeleteArray.push(scheduleId);
-      })
+      .then(sObj.fnPushScheduleIdForDelete)
       .then(createScheduleAsync)
-      .then(({ scheduleId }) => {
-        sObj.scheduleIdForDeleteArray.push(scheduleId);
-        return done();
-      })
+      .then(sObj.fnPushScheduleIdForDelete)
+      .then(() => done())
       .catch(done);
   });
   it('updateAvailability', (done) => {
     createScheduleAsync()
-      .then(({ scheduleId }) => {
-        sObj.scheduleIdForDeleteArray.push(scheduleId);
-        return { scheduleId };
-      })
+      .then(sObj.fnPushScheduleIdForDelete)
       .then(updateAvailabilityAsync)
       .then(() => done())
       .catch(done);
   });
   it('updateComment', (done) => {
     createScheduleAsync()
-      .then(({ scheduleId }) => {
-        sObj.scheduleIdForDeleteArray.push(scheduleId);
-        return { scheduleId };
-      })
+      .then(sObj.fnPushScheduleIdForDelete)
       .then(updateCommentAsync)
       .then(() => done())
       .catch(done);
@@ -256,10 +258,7 @@ describe('/schedules/:scheduleId?edit=1', () => {
 
   it('editSchedule', (done) => {
     createScheduleAsync()
-      .then(({ scheduleId }) => {
-        sObj.scheduleIdForDeleteArray.push(scheduleId);
-        return { scheduleId };
-      })
+      .then(sObj.fnPushScheduleIdForDelete)
       .then(editScheduleAsync)
       .then(() => done())
       .catch(done);
@@ -274,17 +273,12 @@ describe('/schedules/:scheduleId?delete=1', () => {
 
   it('deleteSchedule', (done) => {
     createScheduleAsync()
-      .then(({ scheduleId }) => {
-        sObj.scheduleIdForDeleteArray.push(scheduleId);
-        return { scheduleId };
-      })
+      .then(sObj.fnPushScheduleIdForDelete)
       .then(updateAvailabilityAsync)
       .then(updateCommentAsync)
       .then(deleteScheduleAsync)
-      .then(() => {
-        sObj.scheduleIdForDeleteArray = [];
-        return done();
-      })
+      .then(sObj.fnResetScheduleIdForDelete)
+      .then(() => done())
       .catch(done);
   });
 });
