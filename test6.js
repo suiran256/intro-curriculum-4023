@@ -64,33 +64,28 @@ function SObj({
   fnAfter = fnAfterDefault,
   fnAfterEach = fnAfterEachDefault,
 } = {}) {
-  this.scheduleId = null;
   this.scheduleIdForDeleteArray = [];
   this.fnBefore = fnBefore.bind(this);
   this.fnAfter = fnAfter.bind(this);
   this.fnAfterEach = fnAfterEach.bind(this);
-  this.fnPushScheduleIdForDelete = (obj) => {
-    // if (scheduleId === undefined) {
-    //   throw new Error('not exist scheduleId in arg');
-    // }
-    if (!obj.scheduleId) {
-      this.scheduleIdForDeleteArray.push(obj.scheduleId);
-    }
-    return obj;
+
+  this.fnPushScheduleIdForDelete = ({ scheduleId }) => {
+    this.scheduleIdForDeleteArray.push(scheduleId);
+    return { scheduleId };
   };
-  this.fnResetScheduleIdForDelete = (obj) => {
+  this.fnResetScheduleIdForDelete = ({ scheduleId } = {}) => {
     this.scheduleIdForDeleteArray = [];
-    return obj;
+    return { scheduleId };
   };
-  // this.fnSetScheduleIdForDelete = function (array = []) {
-  //   return ({ scheduleId } = {}) => {
-  //     this.scheduleIdForDeleteArray = array;
-  //     return { scheduleId };
-  //   };
-  // };
+  this.fnSetScheduleIdForDelete = function (array = []) {
+    return function ({ scheduleId } = {}) {
+      this.scheduleIdForDeleteArray = array;
+      return { scheduleId };
+    }.bind(this);
+  };
 }
 
-const createScheduleAsync = async (obj) => {
+const createScheduleAsync = async () => {
   let res = null;
   let resObj = null;
   resObj = request(app).get('/schedules/new');
@@ -113,13 +108,10 @@ const createScheduleAsync = async (obj) => {
   assert.match(res.text, /memo1/);
   assert.match(res.text, /can1/);
   assert.strictEqual(res.status, 200);
-  obj.scheduleId = scheduleId;
-  return obj;
+  return { scheduleId };
 };
 
-const updateAvailabilityAsync = async (obj) => {
-  const { scheduleId } = obj;
-  if (!scheduleId) throw new Error('not exit scheduleId in obj');
+const updateAvailabilityAsync = async ({ scheduleId }) => {
   let res = null;
   let resObj = null;
   const candidate = await Candidate.findOne({
@@ -137,13 +129,10 @@ const updateAvailabilityAsync = async (obj) => {
   });
   assert.strictEqual(availabilities.length, 1);
   assert.strictEqual(availabilities[0].availability, 2);
-  //obj.scheduleId = scheduleId;
-  return obj;
+  return { scheduleId };
 };
 
-const updateCommentAsync = async (obj) => {
-  const { scheduleId } = obj;
-  if (!scheduleId) throw new Error('not exit scheduleId in obj');
+const updateCommentAsync = async ({ scheduleId }) => {
   let res = null;
   let resObj = null;
   resObj = request(app)
@@ -156,12 +145,10 @@ const updateCommentAsync = async (obj) => {
   });
   assert.strictEqual(comments.length, 1);
   assert.strictEqual(comments[0].comment, 'comment1');
-  return obj;
+  return { scheduleId };
 };
 
-const editScheduleAsync = async (obj) => {
-  const { scheduleId } = obj;
-  if (!scheduleId) throw new Error('not exit scheduleId in obj');
+const editScheduleAsync = async ({ scheduleId }) => {
   let res = null;
   let resObj = null;
   resObj = request(app).get(`/schedules/${scheduleId}/edit`);
@@ -190,12 +177,10 @@ const editScheduleAsync = async (obj) => {
   assert.match(res.text, /can2/);
   assert.match(res.text, /can3/);
   assert.strictEqual(res.status, 200);
-  return obj;
+  return { scheduleId };
 };
 
-const deleteScheduleAsync = async (obj) => {
-  const { scheduleId } = obj;
-  if (!scheduleId) throw new Error('not exit scheduleId in obj');
+const deleteScheduleAsync = async ({ scheduleId }) => {
   let res = null;
   let resObj = null;
   resObj = request(app).get(`/schedules/${scheduleId}/edit`);
@@ -232,8 +217,7 @@ const deleteScheduleAsync = async (obj) => {
     return;
   });
   await Promise.all([p1, p2, p3, p4]);
-  obj.scheduleId = null;
-  return obj;
+  return;
 };
 
 describe('/schedules', () => {
@@ -243,20 +227,22 @@ describe('/schedules', () => {
   afterEach(sObj.fnAfterEach);
 
   it('createSchedule', (done) => {
-    createScheduleAsync(sObj)
+    createScheduleAsync()
+      .then(sObj.fnPushScheduleIdForDelete)
+      .then(createScheduleAsync)
       .then(sObj.fnPushScheduleIdForDelete)
       .then(() => done())
       .catch(done);
   });
   it('updateAvailability', (done) => {
-    createScheduleAsync(sObj)
+    createScheduleAsync()
       .then(sObj.fnPushScheduleIdForDelete)
       .then(updateAvailabilityAsync)
       .then(() => done())
       .catch(done);
   });
   it('updateComment', (done) => {
-    createScheduleAsync(sObj)
+    createScheduleAsync()
       .then(sObj.fnPushScheduleIdForDelete)
       .then(updateCommentAsync)
       .then(() => done())
@@ -271,7 +257,7 @@ describe('/schedules/:scheduleId?edit=1', () => {
   afterEach(sObj.fnAfterEach);
 
   it('editSchedule', (done) => {
-    createScheduleAsync(sObj)
+    createScheduleAsync()
       .then(sObj.fnPushScheduleIdForDelete)
       .then(editScheduleAsync)
       .then(() => done())
@@ -286,7 +272,7 @@ describe('/schedules/:scheduleId?delete=1', () => {
   afterEach(sObj.fnAfterEach);
 
   it('deleteSchedule', (done) => {
-    createScheduleAsync(sObj)
+    createScheduleAsync()
       .then(sObj.fnPushScheduleIdForDelete)
       .then(updateAvailabilityAsync)
       .then(updateCommentAsync)
