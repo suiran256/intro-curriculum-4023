@@ -41,12 +41,14 @@ function fnAfterDefault(done) {
     .catch(done);
 }
 function fnAfterEachDefault(done) {
+  //itごとにobjの変数はリセットする方針。やろうと思えばit間のchainも可。
   Promise.all(
     this.scheduleIdForDeleteArray.map((s) =>
       deleteScheduleAggregate(s, () => {})
     )
   )
     .then(() => {
+      this.scheduleId = null;
       this.scheduleIdForDeleteArray = [];
       console.log('********* afterEach finished');
       done();
@@ -59,35 +61,30 @@ function fnAfterEachDefault(done) {
 //   return done();
 // }
 
-// function SObj({
-//   fnBefore = fnBeforeDefault,
-//   fnAfter = fnAfterDefault,
-//   fnAfterEach = fnAfterEachDefault,
-// } = {}) {
-function SObj() {
+function SObj({
+  fnBefore = fnBeforeDefault,
+  fnAfter = fnAfterDefault,
+  fnAfterEach = fnAfterEachDefault,
+} = {}) {
+  // function SObj() {
   this.scheduleId = null;
   this.scheduleIdForDeleteArray = [];
-  //this.fnBefore = fnBefore.bind(this);
-  //this.fnAfter = fnAfter.bind(this);
-  //this.fnAfterEach = fnAfterEach.bind(this);
-  this.fnPushScheduleIdForDelete = (obj) => {
-    // if (scheduleId === undefined) {
-    //   throw new Error('not exist scheduleId in arg');
-    // }
-    if (!obj.scheduleId) {
-      this.scheduleIdForDeleteArray.push(obj.scheduleId);
-    }
-    return obj;
-  };
-  this.fnResetScheduleIdForDelete = (obj) => {
-    this.scheduleIdForDeleteArray = [];
-    return obj;
-  };
-  // this.fnSetScheduleIdForDelete = function (array = []) {
-  //   return ({ scheduleId } = {}) => {
-  //     this.scheduleIdForDeleteArray = array;
-  //     return { scheduleId };
-  //   };
+
+  this.fnBefore = fnBefore.bind(this);
+  this.fnAfter = fnAfter.bind(this);
+  this.fnAfterEach = fnAfterEach.bind(this);
+  // this.fnPushScheduleIdForDelete = (obj) => {
+  //   // if (scheduleId === undefined) {
+  //   //   throw new Error('not exist scheduleId in arg');
+  //   // }
+  //   if (!obj.scheduleId) {
+  //     this.scheduleIdForDeleteArray.push(obj.scheduleId);
+  //   }
+  //   return obj;
+  // };
+  // this.fnResetScheduleIdForDelete = (obj) => {
+  //   this.scheduleIdForDeleteArray = [];
+  //   return obj;
   // };
 }
 
@@ -116,7 +113,7 @@ const createScheduleAsync = async (obj) => {
   assert.strictEqual(res.status, 200);
 
   obj.scheduleId = scheduleId;
-  obj.scheduleIdForDeleteArray.push(obj.scheduleId);
+  obj.scheduleIdForDeleteArray.push(scheduleId);
   return obj;
 };
 
@@ -243,9 +240,9 @@ const deleteScheduleAsync = async (obj) => {
 
 describe('/schedules', () => {
   const sObj = new SObj();
-  before(fnBeforeDefault.bind(sObj));
-  after(fnAfterDefault.bind(sObj));
-  afterEach(fnAfterEachDefault.bind(sObj));
+  before(sObj.fnBefore);
+  after(sObj.fnAfter);
+  afterEach(sObj.fnAfterEach);
 
   it('createSchedule', (done) => {
     createScheduleAsync(sObj)
@@ -271,9 +268,9 @@ describe('/schedules', () => {
 
 describe('/schedules/:scheduleId?edit=1', () => {
   const sObj = new SObj();
-  before(fnBeforeDefault.bind(sObj));
-  after(fnAfterDefault.bind(sObj));
-  afterEach(fnAfterEachDefault.bind(sObj));
+  before(sObj.fnBefore);
+  after(sObj.fnAfter);
+  afterEach(sObj.fnAfterEach);
 
   it('editSchedule', (done) => {
     createScheduleAsync(sObj)
@@ -286,9 +283,9 @@ describe('/schedules/:scheduleId?edit=1', () => {
 
 describe('/schedules/:scheduleId?delete=1', () => {
   const sObj = new SObj();
-  before(fnBeforeDefault.bind(sObj));
-  after(fnAfterDefault.bind(sObj));
-  afterEach(fnAfterEachDefault.bind(sObj));
+  before(sObj.fnBefore);
+  after(sObj.fnAfter);
+  afterEach(sObj.fnAfterEach);
 
   it('deleteSchedule', (done) => {
     createScheduleAsync(sObj)
