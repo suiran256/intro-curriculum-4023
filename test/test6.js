@@ -59,16 +59,17 @@ function fnAfterEachDefault(done) {
 //   return done();
 // }
 
-function SObj({
-  fnBefore = fnBeforeDefault,
-  fnAfter = fnAfterDefault,
-  fnAfterEach = fnAfterEachDefault,
-} = {}) {
+// function SObj({
+//   fnBefore = fnBeforeDefault,
+//   fnAfter = fnAfterDefault,
+//   fnAfterEach = fnAfterEachDefault,
+// } = {}) {
+function SObj() {
   this.scheduleId = null;
   this.scheduleIdForDeleteArray = [];
-  this.fnBefore = fnBefore.bind(this);
-  this.fnAfter = fnAfter.bind(this);
-  this.fnAfterEach = fnAfterEach.bind(this);
+  //this.fnBefore = fnBefore.bind(this);
+  //this.fnAfter = fnAfter.bind(this);
+  //this.fnAfterEach = fnAfterEach.bind(this);
   this.fnPushScheduleIdForDelete = (obj) => {
     // if (scheduleId === undefined) {
     //   throw new Error('not exist scheduleId in arg');
@@ -113,7 +114,9 @@ const createScheduleAsync = async (obj) => {
   assert.match(res.text, /memo1/);
   assert.match(res.text, /can1/);
   assert.strictEqual(res.status, 200);
+
   obj.scheduleId = scheduleId;
+  obj.scheduleIdForDeleteArray.push(obj.scheduleId);
   return obj;
 };
 
@@ -232,32 +235,34 @@ const deleteScheduleAsync = async (obj) => {
     return;
   });
   await Promise.all([p1, p2, p3, p4]);
+
   obj.scheduleId = null;
+  obj.scheduleIdForDeleteArray = [];
   return obj;
 };
 
 describe('/schedules', () => {
   const sObj = new SObj();
-  before(sObj.fnBefore);
-  after(sObj.fnAfter);
-  afterEach(sObj.fnAfterEach);
+  before(fnBeforeDefault.bind(sObj));
+  after(fnAfterDefault.bind(sObj));
+  afterEach(fnAfterEachDefault.bind(sObj));
 
   it('createSchedule', (done) => {
     createScheduleAsync(sObj)
-      .then(sObj.fnPushScheduleIdForDelete)
+      //.then(sObj.fnPushScheduleIdForDelete)
       .then(() => done())
       .catch(done);
   });
   it('updateAvailability', (done) => {
     createScheduleAsync(sObj)
-      .then(sObj.fnPushScheduleIdForDelete)
+      //.then(sObj.fnPushScheduleIdForDelete)
       .then(updateAvailabilityAsync)
       .then(() => done())
       .catch(done);
   });
   it('updateComment', (done) => {
     createScheduleAsync(sObj)
-      .then(sObj.fnPushScheduleIdForDelete)
+      //.then(sObj.fnPushScheduleIdForDelete)
       .then(updateCommentAsync)
       .then(() => done())
       .catch(done);
@@ -266,13 +271,13 @@ describe('/schedules', () => {
 
 describe('/schedules/:scheduleId?edit=1', () => {
   const sObj = new SObj();
-  before(sObj.fnBefore);
-  after(sObj.fnAfter);
-  afterEach(sObj.fnAfterEach);
+  before(fnBeforeDefault.bind(sObj));
+  after(fnAfterDefault.bind(sObj));
+  afterEach(fnAfterEachDefault.bind(sObj));
 
   it('editSchedule', (done) => {
     createScheduleAsync(sObj)
-      .then(sObj.fnPushScheduleIdForDelete)
+      //.then(sObj.fnPushScheduleIdForDelete)
       .then(editScheduleAsync)
       .then(() => done())
       .catch(done);
@@ -281,17 +286,17 @@ describe('/schedules/:scheduleId?edit=1', () => {
 
 describe('/schedules/:scheduleId?delete=1', () => {
   const sObj = new SObj();
-  before(sObj.fnBefore);
-  after(sObj.fnAfter);
-  afterEach(sObj.fnAfterEach);
+  before(fnBeforeDefault.bind(sObj));
+  after(fnAfterDefault.bind(sObj));
+  afterEach(fnAfterEachDefault.bind(sObj));
 
   it('deleteSchedule', (done) => {
     createScheduleAsync(sObj)
-      .then(sObj.fnPushScheduleIdForDelete)
+      //.then(sObj.fnPushScheduleIdForDelete)
       .then(updateAvailabilityAsync)
       .then(updateCommentAsync)
       .then(deleteScheduleAsync)
-      .then(sObj.fnResetScheduleIdForDelete)
+      //.then(sObj.fnResetScheduleIdForDelete)
       .then(() => done())
       .catch(done);
   });
