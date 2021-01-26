@@ -89,7 +89,6 @@ const getAsync = ({ url }) => {
 const postAjaxAsync = ({ url, objData = {} }) => {
   return async function (obj) {
     if (!url) throw new Error("don't exist url value");
-    if (!objData) throw new Error("don't exist objData value");
     let res = null;
     let resObj = null;
     resObj = request(app).post(url).send(objData);
@@ -102,7 +101,6 @@ const postAjaxAsync = ({ url, objData = {} }) => {
 const postAsync = ({ url, objData = {} }) => {
   return async function (obj) {
     if (!url) throw new Error("don't exist url value");
-    if (!objData) throw new Error("don't exist objData value");
     let res = null;
     let resObj = null;
     const setCookie = obj.res.headers['set-cookie'];
