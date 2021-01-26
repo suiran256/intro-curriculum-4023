@@ -76,7 +76,7 @@ function ItObj(describeObj = new DescribeObj()) {
 
 const getAsync = ({ url }) => {
   return async function (obj) {
-    if (!url) throw new Error("don't exist url value");
+    if (!url) throw new Error('need url value');
     let res = null;
     let resObj = null;
     resObj = request(app).get(url);
@@ -88,7 +88,7 @@ const getAsync = ({ url }) => {
 };
 const postAjaxAsync = ({ url, objData = {} }) => {
   return async function (obj) {
-    if (!url) throw new Error("don't exist url value");
+    if (!url) throw new Error('need url value');
     let res = null;
     let resObj = null;
     resObj = request(app).post(url).send(objData);
@@ -100,7 +100,7 @@ const postAjaxAsync = ({ url, objData = {} }) => {
 };
 const postAsync = ({ url, objData = {} }) => {
   return async function (obj) {
-    if (!url) throw new Error("don't exist url value");
+    if (!url) throw new Error('need url value');
     let res = null;
     let resObj = null;
     const setCookie = obj.res.headers['set-cookie'];
@@ -118,7 +118,7 @@ const postAsync = ({ url, objData = {} }) => {
   };
 };
 
-const createScheduleAsync = async (obj) => {
+const createScheduleInitialAsync = async (obj) => {
   obj = await getAsync({
     url: '/schedules/new',
   })(obj);
@@ -140,19 +140,26 @@ const createScheduleAsync = async (obj) => {
     url: schedulePath,
   })(obj);
   assert.match(obj.res.text, /testuser/);
-  assert.match(obj.res.text, /scheduleName1/);
-  assert.match(obj.res.text, /memo1/);
-  assert.match(obj.res.text, /can1/);
+  assert.match(obj.res.text, />scheduleName1</);
+  assert.match(obj.res.text, />memo1</);
+  assert.match(obj.res.text, />can1</);
 
   return obj;
 };
 
 const updateAvailabilityAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
-  if (!scheduleId) throw new Error('not exist scheduleId in obj');
+  if (!scheduleId) throw new Error('need scheduleId in obj');
+
   const candidate = await Candidate.findOne({
     where: { scheduleId: scheduleId },
   });
+  assert.strictEqual(
+    !!candidate,
+    true,
+    'need more 1 candidates before this test'
+  );
+
   obj = await postAjaxAsync({
     url: `/schedules/${scheduleId}/users/${0}/candidates/${
       candidate.candidateId
@@ -160,35 +167,87 @@ const updateAvailabilityAsync = async (obj) => {
     objData: { availability: 2 },
   })(obj);
   assert.strictEqual(obj.res.text, '{"status":"OK","availability":2}');
-  const availabilities = await Availability.findAll({
-    where: { scheduleId: scheduleId },
+  let availabilities = await Availability.findAll({
+    where: [{ userId: 0 }, { candidateId: candidate.candidateId }],
   });
   assert.strictEqual(availabilities.length, 1);
   assert.strictEqual(availabilities[0].availability, 2);
+  obj = await postAjaxAsync({
+    url: `/schedules/${scheduleId}/users/${0}/candidates/${
+      candidate.candidateId
+    }`,
+    objData: { availability: 1 },
+  })(obj);
+  assert.strictEqual(obj.res.text, '{"status":"OK","availability":1}');
+  availabilities = await Availability.findAll({
+    where: [{ userId: 0 }, { candidateId: candidate.candidateId }],
+  });
+  assert.strictEqual(availabilities.length, 1);
+  assert.strictEqual(availabilities[0].availability, 1);
+
+  obj = await getAsync({
+    url: `/schedules/${scheduleId}`,
+  })(obj);
+  assert.match(
+    obj.res.text,
+    new RegExp(
+      `data-user-id=\\"0\\" data-candidate-id=\\"${candidate.candidateId}\\" data-availability=\\"1\\"`
+    )
+  );
+  assert.doesNotMatch(
+    obj.res.text,
+    new RegExp(
+      `data-user-id=\\"0\\" data-candidate-id=\\"${candidate.candidateId}\\" data-availability=\\"2\\"`
+    )
+  );
 
   return obj;
 };
 
 const updateCommentAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
-  if (!scheduleId) throw new Error('not exist scheduleId in obj');
+  if (!scheduleId) throw new Error('need scheduleId in obj');
+  let comments = await Comment.findAll({
+    where: { scheduleId: scheduleId },
+  });
+  assert.strictEqual(
+    comments.length,
+    0,
+    'need to empty comments before this test'
+  );
+
   obj = await postAjaxAsync({
     url: `/schedules/${scheduleId}/users/${0}/comments`,
     objData: { comment: 'comment1' },
   })(obj);
   assert.strictEqual(obj.res.text, '{"status":"OK","comment":"comment1"}');
-  const comments = await Comment.findAll({
+  comments = await Comment.findAll({
     where: { scheduleId: scheduleId },
   });
   assert.strictEqual(comments.length, 1);
   assert.strictEqual(comments[0].comment, 'comment1');
+  obj = await postAjaxAsync({
+    url: `/schedules/${scheduleId}/users/${0}/comments`,
+    objData: { comment: 'commentkai' },
+  })(obj);
+  assert.strictEqual(obj.res.text, '{"status":"OK","comment":"commentkai"}');
+  comments = await Comment.findAll({
+    where: { scheduleId: scheduleId },
+  });
+  assert.strictEqual(comments.length, 1);
+  assert.strictEqual(comments[0].comment, 'commentkai');
+  obj = await getAsync({
+    url: `/schedules/${scheduleId}`,
+  })(obj);
+  assert.match(obj.res.text, />commentkai</);
+  assert.doesNotMatch(obj.res.text, />comment1</);
 
   return obj;
 };
 
 const editScheduleAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
-  if (!scheduleId) throw new Error('not exist scheduleId in obj');
+  if (!scheduleId) throw new Error('need scheduleId in obj');
   obj = await getAsync({
     url: `/schedules/${scheduleId}/edit`,
   })(obj);
@@ -204,19 +263,28 @@ const editScheduleAsync = async (obj) => {
   obj = await getAsync({
     url: schedulePath,
   })(obj);
+  //doesNotMatchは、createScheduleInitialAsyncへの適用が前提
   assert.match(obj.res.text, /testuser/);
-  assert.match(obj.res.text, /scheduleName1kai/);
-  assert.match(obj.res.text, /memo1kai/);
-  assert.match(obj.res.text, /can1/);
-  assert.match(obj.res.text, /can2/);
-  assert.match(obj.res.text, /can3/);
+  assert.match(obj.res.text, />scheduleName1kai</);
+  assert.doesNotMatch(obj.res.text, />scheduleName1</);
+  assert.match(obj.res.text, />memo1kai</);
+  assert.doesNotMatch(obj.res.text, />memo1</);
+  assert.match(obj.res.text, />can1</);
+  assert.match(obj.res.text, />can2</);
+  assert.match(obj.res.text, />can3</);
 
   return obj;
 };
 
 const deleteScheduleAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
-  if (!scheduleId) throw new Error('not exist scheduleId in obj');
+  if (!scheduleId) throw new Error('need scheduleId in obj');
+
+  obj = await getAsync({
+    url: '/',
+  })(obj);
+  assert.match(obj.res.text, new RegExp(scheduleId));
+
   obj = await getAsync({
     url: `/schedules/${scheduleId}/edit`,
   })(obj);
@@ -251,6 +319,11 @@ const deleteScheduleAsync = async (obj) => {
   });
   await Promise.all([p1, p2, p3, p4]);
 
+  obj = await getAsync({
+    url: '/',
+  })(obj);
+  assert.doesNotMatch(obj.res.text, new RegExp(scheduleId));
+
   return obj;
 };
 
@@ -262,20 +335,20 @@ describe('/schedules', () => {
 
   it('createSchedule', (done) => {
     const itObj = new ItObj(describeObj);
-    createScheduleAsync(itObj)
+    createScheduleInitialAsync(itObj)
       .then(() => done())
       .catch(done);
   });
   it('updateAvailability', (done) => {
     const itObj = new ItObj(describeObj);
-    createScheduleAsync(itObj)
+    createScheduleInitialAsync(itObj)
       .then(updateAvailabilityAsync)
       .then(() => done())
       .catch(done);
   });
   it('updateComment', (done) => {
     const itObj = new ItObj(describeObj);
-    createScheduleAsync(itObj)
+    createScheduleInitialAsync(itObj)
       .then(updateCommentAsync)
       .then(() => done())
       .catch(done);
@@ -290,7 +363,7 @@ describe('/schedules/:scheduleId?edit=1', () => {
 
   it('editSchedule', (done) => {
     const itObj = new ItObj(describeObj);
-    createScheduleAsync(itObj)
+    createScheduleInitialAsync(itObj)
       .then(editScheduleAsync)
       .then(() => done())
       .catch(done);
@@ -305,7 +378,7 @@ describe('/schedules/:scheduleId?delete=1', () => {
 
   it('deleteSchedule', (done) => {
     const itObj = new ItObj(describeObj);
-    createScheduleAsync(itObj)
+    createScheduleInitialAsync(itObj)
       .then(updateAvailabilityAsync)
       .then(updateCommentAsync)
       .then(deleteScheduleAsync)
