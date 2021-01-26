@@ -231,8 +231,8 @@ const deleteScheduleAsync = async (obj) => {
   });
   await Promise.all([p1, p2, p3, p4]);
 
-  obj.scheduleId = null;
-  obj.scheduleIdStack = [];
+  obj.scheduleIdStack.splice(obj.scheduleIdStack.indexOf(scheduleId), 1);
+  obj.scheduleId = obj.scheduleIdStack[obj.scheduleIdStack.length - 1];
   return obj;
 };
 
