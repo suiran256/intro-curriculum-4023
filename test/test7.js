@@ -53,10 +53,10 @@ function fnAfterEachDefault(done) {
     .catch(done);
 }
 
-// function test(done) {
-//   console.log('**************** test');
-//   return done();
-// }
+function test(done) {
+  console.log('**************** test');
+  return done();
+}
 
 function DescribeObj({
   fnBefore = fnBeforeDefault,
@@ -149,7 +149,7 @@ const createScheduleAsync = async (obj) => {
 
 const updateAvailabilityAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
-  if (!scheduleId) throw new Error('not exit scheduleId in obj');
+  if (!scheduleId) throw new Error('not exist scheduleId in obj');
   const candidate = await Candidate.findOne({
     where: { scheduleId: scheduleId },
   });
@@ -171,7 +171,7 @@ const updateAvailabilityAsync = async (obj) => {
 
 const updateCommentAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
-  if (!scheduleId) throw new Error('not exit scheduleId in obj');
+  if (!scheduleId) throw new Error('not exist scheduleId in obj');
   obj = await postAjaxAsync({
     url: `/schedules/${scheduleId}/users/${0}/comments`,
     objData: { comment: 'comment1' },
@@ -188,7 +188,7 @@ const updateCommentAsync = async (obj) => {
 
 const editScheduleAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
-  if (!scheduleId) throw new Error('not exit scheduleId in obj');
+  if (!scheduleId) throw new Error('not exist scheduleId in obj');
   obj = await getAsync({
     url: `/schedules/${scheduleId}/edit`,
   })(obj);
@@ -216,7 +216,7 @@ const editScheduleAsync = async (obj) => {
 
 const deleteScheduleAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
-  if (!scheduleId) throw new Error('not exit scheduleId in obj');
+  if (!scheduleId) throw new Error('not exist scheduleId in obj');
   obj = await getAsync({
     url: `/schedules/${scheduleId}/edit`,
   })(obj);
