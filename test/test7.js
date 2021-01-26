@@ -98,6 +98,7 @@ const postAjaxAsync = ({ url, objData = {} }) => {
     return obj;
   };
 };
+
 const postAsync = ({ url, objData = {} }) => {
   return async function (obj) {
     if (!url) throw new Error('need url value');
@@ -105,6 +106,8 @@ const postAsync = ({ url, objData = {} }) => {
     let resObj = null;
     const setCookie = obj.res.headers['set-cookie'];
     const csrf = obj.res.text.match(/name="_csrf" value="(.*?)"/)[1];
+    if (!csrf) throw new Error('need contain _csrf');
+
     resObj = request(app)
       .post(url)
       .set('cookie', setCookie)
@@ -150,7 +153,6 @@ const createScheduleInitialAsync = async (obj) => {
 const updateAvailabilityAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
   if (!scheduleId) throw new Error('need scheduleId in obj');
-
   const candidate = await Candidate.findOne({
     where: { scheduleId: scheduleId },
   });
@@ -172,6 +174,7 @@ const updateAvailabilityAsync = async (obj) => {
   });
   assert.strictEqual(availabilities.length, 1);
   assert.strictEqual(availabilities[0].availability, 2);
+
   obj = await postAjaxAsync({
     url: `/schedules/${scheduleId}/users/${0}/candidates/${
       candidate.candidateId
@@ -207,25 +210,27 @@ const updateAvailabilityAsync = async (obj) => {
 const updateCommentAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
   if (!scheduleId) throw new Error('need scheduleId in obj');
-  let comments = await Comment.findAll({
-    where: { scheduleId: scheduleId },
-  });
-  assert.strictEqual(
-    comments.length,
-    0,
-    'need to empty comments before this test'
-  );
+  ////複数人対応の際は必要
+  // let comments = await Comment.findAll({
+  //   where: { scheduleId: scheduleId },
+  // });
+  // assert.strictEqual(
+  //   comments.length,
+  //   0,
+  //   'need to empty comments before this test'
+  // );
 
   obj = await postAjaxAsync({
     url: `/schedules/${scheduleId}/users/${0}/comments`,
     objData: { comment: 'comment1' },
   })(obj);
   assert.strictEqual(obj.res.text, '{"status":"OK","comment":"comment1"}');
-  comments = await Comment.findAll({
+  let comments = await Comment.findAll({
     where: { scheduleId: scheduleId },
   });
   assert.strictEqual(comments.length, 1);
   assert.strictEqual(comments[0].comment, 'comment1');
+
   obj = await postAjaxAsync({
     url: `/schedules/${scheduleId}/users/${0}/comments`,
     objData: { comment: 'commentkai' },
@@ -236,6 +241,7 @@ const updateCommentAsync = async (obj) => {
   });
   assert.strictEqual(comments.length, 1);
   assert.strictEqual(comments[0].comment, 'commentkai');
+
   obj = await getAsync({
     url: `/schedules/${scheduleId}`,
   })(obj);
@@ -248,6 +254,7 @@ const updateCommentAsync = async (obj) => {
 const editScheduleAsync = async (obj) => {
   const { scheduleId } = obj.describeObj;
   if (!scheduleId) throw new Error('need scheduleId in obj');
+
   obj = await getAsync({
     url: `/schedules/${scheduleId}/edit`,
   })(obj);
@@ -259,6 +266,7 @@ const editScheduleAsync = async (obj) => {
       candidates: 'can2\ncan3',
     },
   })(obj);
+
   const schedulePath = obj.res.headers.location;
   obj = await getAsync({
     url: schedulePath,
@@ -292,9 +300,11 @@ const deleteScheduleAsync = async (obj) => {
     url: `/schedules/${scheduleId}?delete=1`,
     //objData: {},
   })(obj);
+
   const scheduleIdStack = obj.describeObj.scheduleIdStack;
   scheduleIdStack.splice(scheduleIdStack.indexOf(scheduleId), 1);
   obj.describeObj.scheduleId = scheduleIdStack[scheduleIdStack.length - 1];
+
   const p1 = Availability.findAll({
     where: { scheduleId: scheduleId },
   }).then((availabilities) => {
