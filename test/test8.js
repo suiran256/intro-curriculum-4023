@@ -19,55 +19,88 @@ const deleteScheduleAggregate = require('../routes/schedules')
 function promisifyResEnd(resObj) {
   return util.promisify(resObj.end).bind(resObj)();
 }
-function fnBeforeDefault(done) {
-  User.upsert({ userId: 0, username: 'testuser' })
-    .then(() => {
-      passportStub.install(app);
-      passportStub.login({ id: 0, username: 'testuser' });
-      console.log('********* before finished');
-      done();
-    })
-    .catch(done);
-}
-function fnAfterDefault(done) {
-  User.findByPk(0)
-    .then((u) => u.destroy())
-    .then(() => {
-      passportStub.logout();
-      passportStub.uninstall(app);
-      console.log('********* after finished');
-      done();
-    })
-    .catch(done);
-}
-function fnAfterEachDefault(done) {
-  Promise.all(
-    this.scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
-  )
-    .then(() => {
-      this.scheduleId = null;
-      this.scheduleIdStack = [];
-      console.log('********* afterEach finished');
-      done();
-    })
-    .catch(done);
-}
 
-function test(done) {
-  console.log('**************** test');
-  return done();
-}
+function DescribeObj({ fnBefore, fnAfter, fnAfterEach } = {}) {
+  let scheduleId = null;
+  let scheduleIdStack = [];
 
-function DescribeObj({
-  fnBefore = fnBeforeDefault,
-  fnAfter = fnAfterDefault,
-  fnAfterEach = fnAfterEachDefault,
-} = {}) {
-  this.scheduleId = null;
-  this.scheduleIdStack = [];
-  this.fnBefore = fnBefore.bind(this);
-  this.fnAfter = fnAfter.bind(this);
-  this.fnAfterEach = fnAfterEach.bind(this);
+  function fnBeforeDefault(done) {
+    User.upsert({ userId: 0, username: 'testuser' })
+      .then(() => {
+        passportStub.install(app);
+        passportStub.login({ id: 0, username: 'testuser' });
+        console.log('********* before finished');
+        done();
+      })
+      .catch(done);
+  }
+  function fnAfterDefault(done) {
+    User.findByPk(0)
+      .then((u) => u.destroy())
+      .then(() => {
+        passportStub.logout();
+        passportStub.uninstall(app);
+        console.log('********* after finished');
+        done();
+      })
+      .catch(done);
+  }
+  // function fnAfterEachDefault(done) {
+  //   Promise.all(
+  //     this.scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
+  //   )
+  //     .then(() => {
+  //       this.scheduleId = null;
+  //       this.scheduleIdStack = [];
+  //       console.log('********* afterEach finished');
+  //       done();
+  //     })
+  //     .catch(done);
+  // }
+  function fnAfterEachDefault2() {
+    //let innerScheduleId = scheduleId;
+    //let innerScheduleIdStack = scheduleIdStack;
+    return function (done) {
+      Promise.all(
+        scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
+      )
+        .then(() => {
+          scheduleId = null;
+          scheduleIdStack = [];
+          console.log('********* afterEach finished');
+          done();
+        })
+        .catch(done);
+    };
+  }
+  // function test(done) {
+  //   console.log('**************** test');
+  //   return done();
+  // }
+
+  // this.scheduleId = null;
+  // this.scheduleIdStack = [];
+  // this.fnBefore = fnBefore.bind(this);
+  // this.fnAfter = fnAfter.bind(this);
+  // this.fnAfterEach = fnAfterEach.bind(this);
+  this.fnBefore = fnBeforeDefault;
+  this.fnAfter = fnAfterDefault;
+  this.fnAfterEach = fnAfterEachDefault2();
+  this.pushScheduleId = function (s) {
+    scheduleIdStack.push(s);
+  };
+  this.getScheduleId = function () {
+    return scheduleId;
+  };
+  this.setScheduleId = function (s) {
+    scheduleId = s;
+  };
+  Object.defineProperty(this, 'scheduleId', {
+    get: () => scheduleId,
+    set: (s) => {
+      scheduleIdStack.push(s);
+    },
+  });
 }
 function ItObj(describeObj = new DescribeObj()) {
   this.res = null;
@@ -136,8 +169,10 @@ const createScheduleInitialAsync = async (obj) => {
   const schedulePath = obj.res.headers.location;
   const scheduleId = schedulePath.match(/schedules\/(.*?)(\/|$)/)[1];
 
-  obj.describeObj.scheduleId = scheduleId;
-  obj.describeObj.scheduleIdStack.push(scheduleId);
+  obj.describeObj.setScheduleId(scheduleId);
+  obj.describeObj.pushScheduleId(scheduleId);
+  // obj.describeObj.scheduleId = scheduleId;
+  // obj.describeObj.scheduleIdStack.push(scheduleId);
 
   obj = await getAsync({
     url: schedulePath,
@@ -252,7 +287,8 @@ const updateCommentAsync = async (obj) => {
 };
 
 const editScheduleAsync = async (obj) => {
-  const { scheduleId } = obj.describeObj;
+  //const scheduleId = obj.describeObj.getScheduleId();
+  const scheduleId = obj.describeObj.scheduleId;
   if (!scheduleId) throw new Error('need scheduleId in obj');
 
   obj = await getAsync({
@@ -337,33 +373,33 @@ const deleteScheduleAsync = async (obj) => {
   return obj;
 };
 
-describe('/schedules', () => {
-  const describeObj = new DescribeObj();
-  before(describeObj.fnBefore);
-  after(describeObj.fnAfter);
-  afterEach(describeObj.fnAfterEach);
+// describe('/schedules', () => {
+//   const describeObj = new DescribeObj();
+//   before(describeObj.fnBefore);
+//   after(describeObj.fnAfter);
+//   afterEach(describeObj.fnAfterEach);
 
-  it('createSchedule', (done) => {
-    const itObj = new ItObj(describeObj);
-    createScheduleInitialAsync(itObj)
-      .then(() => done())
-      .catch(done);
-  });
-  it('updateAvailability', (done) => {
-    const itObj = new ItObj(describeObj);
-    createScheduleInitialAsync(itObj)
-      .then(updateAvailabilityAsync)
-      .then(() => done())
-      .catch(done);
-  });
-  it('updateComment', (done) => {
-    const itObj = new ItObj(describeObj);
-    createScheduleInitialAsync(itObj)
-      .then(updateCommentAsync)
-      .then(() => done())
-      .catch(done);
-  });
-});
+//   it('createSchedule', (done) => {
+//     const itObj = new ItObj(describeObj);
+//     createScheduleInitialAsync(itObj)
+//       .then(() => done())
+//       .catch(done);
+//   });
+//   it('updateAvailability', (done) => {
+//     const itObj = new ItObj(describeObj);
+//     createScheduleInitialAsync(itObj)
+//       .then(updateAvailabilityAsync)
+//       .then(() => done())
+//       .catch(done);
+//   });
+//   it('updateComment', (done) => {
+//     const itObj = new ItObj(describeObj);
+//     createScheduleInitialAsync(itObj)
+//       .then(updateCommentAsync)
+//       .then(() => done())
+//       .catch(done);
+//   });
+// });
 
 describe('/schedules/:scheduleId?edit=1', () => {
   const describeObj = new DescribeObj();
@@ -380,19 +416,19 @@ describe('/schedules/:scheduleId?edit=1', () => {
   });
 });
 
-describe('/schedules/:scheduleId?delete=1', () => {
-  const describeObj = new DescribeObj();
-  before(describeObj.fnBefore);
-  after(describeObj.fnAfter);
-  afterEach(describeObj.fnAfterEach);
+// describe('/schedules/:scheduleId?delete=1', () => {
+//   const describeObj = new DescribeObj();
+//   before(describeObj.fnBefore);
+//   after(describeObj.fnAfter);
+//   afterEach(describeObj.fnAfterEach);
 
-  it('deleteSchedule', (done) => {
-    const itObj = new ItObj(describeObj);
-    createScheduleInitialAsync(itObj)
-      .then(updateAvailabilityAsync)
-      .then(updateCommentAsync)
-      .then(deleteScheduleAsync)
-      .then(() => done())
-      .catch(done);
-  });
-});
+//   it('deleteSchedule', (done) => {
+//     const itObj = new ItObj(describeObj);
+//     createScheduleInitialAsync(itObj)
+//       .then(updateAvailabilityAsync)
+//       .then(updateCommentAsync)
+//       .then(deleteScheduleAsync)
+//       .then(() => done())
+//       .catch(done);
+//   });
+// });
