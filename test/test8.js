@@ -57,24 +57,39 @@ function DescribeObj({ fnBefore, fnAfter, fnAfterEach } = {}) {
   //     })
   //     .catch(done);
   // }
-  function fnAfterEachDefault2() {
-    //let innerScheduleId = scheduleId;
-    //let innerScheduleIdStack = scheduleIdStack;
-    return function (done) {
-      Promise.all(
-        scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
-      )
-        .then(() => {
-          scheduleId = null;
-          scheduleIdStack = [];
-          console.log('********* afterEach finished');
-          done();
-        })
-        .catch(done);
-    };
+  function fnAfterEachDefault(done) {
+    Promise.all(
+      scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
+    )
+      .then(() => {
+        scheduleId = null;
+        scheduleIdStack = [];
+        console.log('********* afterEach finished');
+        done();
+      })
+      .catch(done);
   }
+  // function fnAfterEachDefault2() {
+  //   return function (done) {
+  //     Promise.all(
+  //       scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
+  //     )
+  //       .then(() => {
+  //         scheduleId = null;
+  //         scheduleIdStack = [];
+  //         console.log('********* afterEach finished');
+  //         done();
+  //       })
+  //       .catch(done);
+  //   };
+  // }
   // function test(done) {
   //   console.log('**************** test');
+  //   return done();
+  // }
+  // function test2(done) {
+  //   console.log('**************** test');
+  //   console.log('**************** scheduleId:', this.scheduleId);
   //   return done();
   // }
 
@@ -83,18 +98,22 @@ function DescribeObj({ fnBefore, fnAfter, fnAfterEach } = {}) {
   // this.fnBefore = fnBefore.bind(this);
   // this.fnAfter = fnAfter.bind(this);
   // this.fnAfterEach = fnAfterEach.bind(this);
-  this.fnBefore = fnBeforeDefault;
-  this.fnAfter = fnAfterDefault;
-  this.fnAfterEach = fnAfterEachDefault2();
+  this.fnBefore = fnBeforeDefault.bind(this);
+  this.fnAfter = fnAfterDefault.bind(this);
+  this.fnAfterEach = fnAfterEachDefault.bind(this);
+
+  //うまくいかない。。わからん。。
+  // this.fnAfterEach = test2.bind(this);
+
   this.pushScheduleId = function (s) {
     scheduleIdStack.push(s);
   };
-  this.getScheduleId = function () {
-    return scheduleId;
-  };
-  this.setScheduleId = function (s) {
-    scheduleId = s;
-  };
+  // this.getScheduleId = function () {
+  //   return scheduleId;
+  // };
+  // this.setScheduleId = function (s) {
+  //   scheduleId = s;
+  // };
   Object.defineProperty(this, 'scheduleId', {
     get: () => scheduleId,
     set: (s) => {
@@ -104,7 +123,11 @@ function DescribeObj({ fnBefore, fnAfter, fnAfterEach } = {}) {
 }
 function ItObj(describeObj = new DescribeObj()) {
   this.res = null;
+  // this.scheduleId = describeObj.scheduleId;
+  // this.scheduleIdStack = describeObj.scheduleIdStack;
+  // this.pushScheduleId = describeObj.pushScheduleId.bind(describeObj);
   this.describeObj = describeObj;
+  //ItObj.prototype = describeObj;
 }
 
 const getAsync = ({ url }) => {
@@ -169,8 +192,13 @@ const createScheduleInitialAsync = async (obj) => {
   const schedulePath = obj.res.headers.location;
   const scheduleId = schedulePath.match(/schedules\/(.*?)(\/|$)/)[1];
 
-  obj.describeObj.setScheduleId(scheduleId);
+  obj.describeObj.scheduleId = scheduleId;
   obj.describeObj.pushScheduleId(scheduleId);
+  // obj.scheduleId = scheduleId;
+  // obj.pushScheduleId(scheduleId);
+  // obj.pushScheduleId = scheduleId;
+  // obj.describeObj.setScheduleId(scheduleId);
+  // obj.describeObj.pushScheduleId(scheduleId);
   // obj.describeObj.scheduleId = scheduleId;
   // obj.describeObj.scheduleIdStack.push(scheduleId);
 
@@ -186,7 +214,8 @@ const createScheduleInitialAsync = async (obj) => {
 };
 
 const updateAvailabilityAsync = async (obj) => {
-  const { scheduleId } = obj.describeObj;
+  const scheduleId = obj.describeObj.scheduleId;
+  // const { scheduleId } = obj.describeObj;
   if (!scheduleId) throw new Error('need scheduleId in obj');
   const candidate = await Candidate.findOne({
     where: { scheduleId: scheduleId },
@@ -243,7 +272,9 @@ const updateAvailabilityAsync = async (obj) => {
 };
 
 const updateCommentAsync = async (obj) => {
-  const { scheduleId } = obj.describeObj;
+  const scheduleId = obj.describeObj.scheduleId;
+  // const scheduleId = obj.scheduleId;
+  // const { scheduleId } = obj.describeObj;
   if (!scheduleId) throw new Error('need scheduleId in obj');
   ////複数人対応の際は必要
   // let comments = await Comment.findAll({
@@ -287,8 +318,9 @@ const updateCommentAsync = async (obj) => {
 };
 
 const editScheduleAsync = async (obj) => {
-  //const scheduleId = obj.describeObj.getScheduleId();
   const scheduleId = obj.describeObj.scheduleId;
+  //const scheduleId = obj.describeObj.getScheduleId();
+  // const scheduleId = obj.scheduleId;
   if (!scheduleId) throw new Error('need scheduleId in obj');
 
   obj = await getAsync({
@@ -321,7 +353,9 @@ const editScheduleAsync = async (obj) => {
 };
 
 const deleteScheduleAsync = async (obj) => {
-  const { scheduleId } = obj.describeObj;
+  const scheduleId = obj.describeObj.scheduleId;
+  // const scheduleId = obj.scheduleId;
+  // const { scheduleId } = obj.describeObj;
   if (!scheduleId) throw new Error('need scheduleId in obj');
 
   obj = await getAsync({
@@ -337,8 +371,14 @@ const deleteScheduleAsync = async (obj) => {
     //objData: {},
   })(obj);
 
-  const scheduleIdStack = obj.describeObj.scheduleIdStack;
+  // const scheduleIdStack = obj.describeObj.scheduleIdStack;
+  // scheduleIdStack.splice(scheduleIdStack.indexOf(scheduleId), 1);
+  // obj.describeObj.scheduleId = scheduleIdStack[scheduleIdStack.length - 1];
+  // const scheduleIdStack = obj.describeObj.scheduleIdStack;
+  let scheduleIdStack = obj.describeObj.scheduleIdStack;
+  // let scheduleIdStack = obj.scheduleIdStack;
   scheduleIdStack.splice(scheduleIdStack.indexOf(scheduleId), 1);
+  // obj.scheduleId = scheduleIdStack[scheduleIdStack.length - 1];
   obj.describeObj.scheduleId = scheduleIdStack[scheduleIdStack.length - 1];
 
   const p1 = Availability.findAll({
@@ -378,6 +418,7 @@ const deleteScheduleAsync = async (obj) => {
 //   before(describeObj.fnBefore);
 //   after(describeObj.fnAfter);
 //   afterEach(describeObj.fnAfterEach);
+//   // afterEach(describeObj.fnAfterEach.bind(describeObj));
 
 //   it('createSchedule', (done) => {
 //     const itObj = new ItObj(describeObj);
@@ -401,34 +442,35 @@ const deleteScheduleAsync = async (obj) => {
 //   });
 // });
 
-describe('/schedules/:scheduleId?edit=1', () => {
+// describe('/schedules/:scheduleId?edit=1', () => {
+//   const describeObj = new DescribeObj();
+//   before(describeObj.fnBefore);
+//   after(describeObj.fnAfter);
+//   afterEach(describeObj.fnAfterEach);
+//   // afterEach(describeObj.fnAfterEach.bind(describeObj));
+
+//   it('editSchedule', (done) => {
+//     const itObj = new ItObj(describeObj);
+//     createScheduleInitialAsync(itObj)
+//       .then(editScheduleAsync)
+//       .then(() => done())
+//       .catch(done);
+//   });
+// });
+
+describe('/schedules/:scheduleId?delete=1', () => {
   const describeObj = new DescribeObj();
   before(describeObj.fnBefore);
   after(describeObj.fnAfter);
   afterEach(describeObj.fnAfterEach);
 
-  it('editSchedule', (done) => {
+  it('deleteSchedule', (done) => {
     const itObj = new ItObj(describeObj);
     createScheduleInitialAsync(itObj)
-      .then(editScheduleAsync)
+      .then(updateAvailabilityAsync)
+      .then(updateCommentAsync)
+      .then(deleteScheduleAsync)
       .then(() => done())
       .catch(done);
   });
 });
-
-// describe('/schedules/:scheduleId?delete=1', () => {
-//   const describeObj = new DescribeObj();
-//   before(describeObj.fnBefore);
-//   after(describeObj.fnAfter);
-//   afterEach(describeObj.fnAfterEach);
-
-//   it('deleteSchedule', (done) => {
-//     const itObj = new ItObj(describeObj);
-//     createScheduleInitialAsync(itObj)
-//       .then(updateAvailabilityAsync)
-//       .then(updateCommentAsync)
-//       .then(deleteScheduleAsync)
-//       .then(() => done())
-//       .catch(done);
-//   });
-// });
