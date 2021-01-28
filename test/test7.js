@@ -18,7 +18,7 @@ const deleteScheduleAggregate = require('../routes/schedules')
   .deleteScheduleAggregate;
 
 function promisifyResEnd(resObj) {
-  return util.promisify(resObj.end).bind(resObj)();
+  return util.promisify(resObj.end).bind(resObj);
 }
 function fnBeforeDefault(done) {
   User.upsert({ userId: 0, username: 'testuser' })
@@ -91,23 +91,23 @@ function ItObj(describeObj = new DescribeObj()) {
   };
 }
 
-const getAsync = ({ path }) => {
-  if (!path) throw new Error('need path value');
+const getAsync = ({ path } = {}) => {
+  if (!path) return () => Promise.reject(new Error('need path value'));
   return async function (obj) {
     if (!obj) throw new Error('need obj value');
     const resObj = request(app).get(path);
-    const res = await promisifyResEnd(resObj);
+    const res = await promisifyResEnd(resObj)();
     assert.strictEqual(res.status, 200);
     obj.res = res;
     return obj;
   };
 };
 const postAjaxAsync = ({ path, data = {} }) => {
-  if (!path) throw new Error('need path value');
+  if (!path) return () => Promise.reject(new Error('need path value'));
   return async function (obj) {
     if (!obj) throw new Error('need obj value');
     const resObj = request(app).post(path).send(data);
-    const res = await promisifyResEnd(resObj);
+    const res = await promisifyResEnd(resObj)();
     assert.strictEqual(res.status, 200);
     obj.res = res;
     return obj;
@@ -115,7 +115,7 @@ const postAjaxAsync = ({ path, data = {} }) => {
 };
 
 const postAsync = ({ path, data = {} }) => {
-  if (!path) throw new Error('need path value');
+  if (!path) return () => Promise.reject(new Error('need path value'));
   return async function (obj) {
     if (!obj) throw new Error('need obj value');
     const setCookie = obj.res.headers['set-cookie'];
@@ -127,7 +127,7 @@ const postAsync = ({ path, data = {} }) => {
       .set('cookie', setCookie)
       .send({ _csrf: csrf, ...data });
 
-    const res = await promisifyResEnd(resObj);
+    const res = await promisifyResEnd(resObj)();
     //TODO: 302以外をどう扱うかは保留。
     assert.strictEqual(res.status, 302);
     obj.res = res;
@@ -216,12 +216,10 @@ const updateAvailabilityAsync = async (obj) => {
   obj = await getAsync({
     path: `/schedules/${scheduleId}`,
   })(obj);
-
   const $ = cheerio.load(obj.res.text);
   const nodes = $(
     `.availability-toggle-button[data-user-id="0"][data-candidate-id="${candidate.candidateId}"]`
   ).toArray();
-
   assert.strictEqual(
     nodes.filter((element) => $(element).attr('data-availability') === '1')
       .length,
@@ -316,7 +314,7 @@ const editScheduleAsync = async (obj) => {
 };
 
 const deleteScheduleAsync = async (obj) => {
-  let scheduleId = obj.getScheduleId();
+  const scheduleId = obj.getScheduleId();
 
   obj = await getAsync({
     path: '/',
