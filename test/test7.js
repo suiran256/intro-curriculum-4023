@@ -5,6 +5,9 @@ const request = require('supertest');
 const passportStub = require('passport-stub');
 const assert = require('assert');
 const util = require('util');
+// const DomParser = require('dom-parser');
+// const domParser = new DomParser();
+const cheerio = require('cheerio');
 const {
   User,
   Schedule,
@@ -53,10 +56,10 @@ function fnAfterEachDefault(done) {
     .catch(done);
 }
 
-function test(done) {
-  console.log('**************** test');
-  return done();
-}
+// function test(done) {
+//   console.log('**************** test');
+//   return done();
+// }
 
 function DescribeObj({
   fnBefore = fnBeforeDefault,
@@ -191,18 +194,20 @@ const updateAvailabilityAsync = async (obj) => {
   obj = await getAsync({
     url: `/schedules/${scheduleId}`,
   })(obj);
-  assert.match(
-    obj.res.text,
-    new RegExp(
-      `data-user-id=\\"0\\" data-candidate-id=\\"${candidate.candidateId}\\" data-availability=\\"1\\"`
-    )
+
+  const $ = cheerio.load(obj.res.text);
+  const nodes = $(
+    `.availability-toggle-button[data-user-id="0"][data-candidate-id="${candidate.candidateId}"]`
+  ).toArray();
+
+  const result = nodes.filter(
+    (element) => $(element).attr('data-availability') === '1'
   );
-  assert.doesNotMatch(
-    obj.res.text,
-    new RegExp(
-      `data-user-id=\\"0\\" data-candidate-id=\\"${candidate.candidateId}\\" data-availability=\\"2\\"`
-    )
+  assert.strictEqual(result.length, 1);
+  const result2 = nodes.filter(
+    (element) => $(element).attr('data-availability') === '2'
   );
+  assert.strictEqual(result2.length, 0);
 
   return obj;
 };
@@ -222,31 +227,31 @@ const updateCommentAsync = async (obj) => {
 
   obj = await postAjaxAsync({
     url: `/schedules/${scheduleId}/users/${0}/comments`,
-    objData: { comment: 'comment1' },
+    objData: { comment: 'commentA' },
   })(obj);
-  assert.strictEqual(obj.res.text, '{"status":"OK","comment":"comment1"}');
+  assert.strictEqual(obj.res.text, '{"status":"OK","comment":"commentA"}');
   let comments = await Comment.findAll({
     where: { scheduleId: scheduleId },
   });
   assert.strictEqual(comments.length, 1);
-  assert.strictEqual(comments[0].comment, 'comment1');
+  assert.strictEqual(comments[0].comment, 'commentA');
 
   obj = await postAjaxAsync({
     url: `/schedules/${scheduleId}/users/${0}/comments`,
-    objData: { comment: 'commentkai' },
+    objData: { comment: 'commentB' },
   })(obj);
-  assert.strictEqual(obj.res.text, '{"status":"OK","comment":"commentkai"}');
+  assert.strictEqual(obj.res.text, '{"status":"OK","comment":"commentB"}');
   comments = await Comment.findAll({
     where: { scheduleId: scheduleId },
   });
   assert.strictEqual(comments.length, 1);
-  assert.strictEqual(comments[0].comment, 'commentkai');
+  assert.strictEqual(comments[0].comment, 'commentB');
 
   obj = await getAsync({
     url: `/schedules/${scheduleId}`,
   })(obj);
-  assert.match(obj.res.text, />commentkai</);
-  assert.doesNotMatch(obj.res.text, />comment1</);
+  assert.match(obj.res.text, />commentB</);
+  assert.doesNotMatch(obj.res.text, />commentA</);
 
   return obj;
 };
@@ -261,8 +266,8 @@ const editScheduleAsync = async (obj) => {
   obj = await postAsync({
     url: `/schedules/${scheduleId}?edit=1`,
     objData: {
-      scheduleName: 'scheduleName1kai',
-      memo: 'memo1kai',
+      scheduleName: 'scheduleName2',
+      memo: 'memo2',
       candidates: 'can2\ncan3',
     },
   })(obj);
@@ -273,9 +278,9 @@ const editScheduleAsync = async (obj) => {
   })(obj);
   //doesNotMatchは、createScheduleInitialAsyncへの適用が前提
   assert.match(obj.res.text, /testuser/);
-  assert.match(obj.res.text, />scheduleName1kai</);
+  assert.match(obj.res.text, />scheduleName2</);
   assert.doesNotMatch(obj.res.text, />scheduleName1</);
-  assert.match(obj.res.text, />memo1kai</);
+  assert.match(obj.res.text, />memo2</);
   assert.doesNotMatch(obj.res.text, />memo1</);
   assert.match(obj.res.text, />can1</);
   assert.match(obj.res.text, />can2</);
