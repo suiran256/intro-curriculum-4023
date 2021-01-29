@@ -102,7 +102,7 @@ const getAsync = ({ path } = {}) => {
     return obj;
   };
 };
-const postAjaxAsync = ({ path, data = {} }) => {
+const postAjaxAsync = ({ path, data = {} } = {}) => {
   if (!path) return () => Promise.reject(new Error('need path value'));
   return async function (obj) {
     if (!obj) throw new Error('need obj value');
@@ -114,7 +114,7 @@ const postAjaxAsync = ({ path, data = {} }) => {
   };
 };
 
-const postAsync = ({ path, data = {} }) => {
+const postAsync = ({ path, data = {} } = {}) => {
   if (!path) return () => Promise.reject(new Error('need path value'));
   return async function (obj) {
     if (!obj) throw new Error('need obj value');
