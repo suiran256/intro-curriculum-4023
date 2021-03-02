@@ -41,10 +41,8 @@ function fnAfterDefault(done) {
     })
     .catch(done);
 }
-function fnAfterEachDefault(done) {
-  Promise.all(
-    this.scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
-  )
+function fnAfterEachDefault(done) { Promise.all(
+    this.scheduleIdStack.map((s) => new Promise((resolve,reject)=>deleteScheduleAggregate(s, () => resolve()))))
     .then(() => {
       this.scheduleId = null;
       this.scheduleIdStack = [];
@@ -53,6 +51,17 @@ function fnAfterEachDefault(done) {
     })
     .catch(done);
 }
+//function fnAfterEachDefault(done) { Promise.all(
+//    this.scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
+//  )
+//    .then(() => {
+//      this.scheduleId = null;
+//      this.scheduleIdStack = [];
+//      console.log('********* afterEach finished');
+//      done();
+//    })
+//    .catch(done);
+//}
 
 // function test(done) {
 //   console.log('**************** test');

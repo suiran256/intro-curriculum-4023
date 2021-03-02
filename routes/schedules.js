@@ -228,8 +228,8 @@ function deleteScheduleAggregate(scheduleId, done, err) {
     );
   });
 
-  //Availability.findAll({
-  return Availability.findAll({
+  Availability.findAll({
+  //return Availability.findAll({
     where: { scheduleId: scheduleId },
   })
     .then((availabilities) => {
