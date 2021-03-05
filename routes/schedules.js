@@ -6,6 +6,8 @@ const uuid = require('uuid');
 const csrf = require('csurf');
 const csrfProtection = csrf({ cookie: true });
 
+const createError = require('http-errors');
+
 const db = require('../models/index');
 const { User, Schedule, Candidate, Availability, Comment } = db;
 
@@ -51,6 +53,7 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
           order: [['"candidateId"', 'ASC']],
         });
       } else {
+        // throw createError(404, 'notFoundaaaaaaaaa');
         const err = new Error('notFound');
         err.status = 404;
         next(err);
@@ -126,6 +129,7 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
         });
       });
     });
+  // .catch(next);
 });
 
 router.get(
@@ -229,7 +233,7 @@ function deleteScheduleAggregate(scheduleId, done, err) {
   });
 
   Availability.findAll({
-  //return Availability.findAll({
+    //return Availability.findAll({
     where: { scheduleId: scheduleId },
   })
     .then((availabilities) => {
