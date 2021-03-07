@@ -1,26 +1,26 @@
-"use strict";
-const express = require("express");
+'use strict';
+const express = require('express');
 const router = express.Router();
-const authenticationEnsurer = require("./authentication-ensurer");
-const uuid = require("uuid");
-const Schedule = require("../models/schedule");
-const Candidate = require("../models/candidate");
-const User = require("../models/user");
-const Availability = require("../models/availability");
-const Comment = require("../models/comment");
-const csrf = require("csurf");
+const authenticationEnsurer = require('./authentication-ensurer');
+const uuid = require('uuid');
+const Schedule = require('../models/schedule');
+const Candidate = require('../models/candidate');
+const User = require('../models/user');
+const Availability = require('../models/availability');
+const Comment = require('../models/comment');
+const csrf = require('csurf');
 const csrfProtection = csrf({ cookie: true });
 
-router.get("/new", authenticationEnsurer, csrfProtection, (req, res, next) => {
-  res.render("new", { user: req.user, csrfToken: req.csrfToken() });
+router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
+  res.render('new', { user: req.user, csrfToken: req.csrfToken() });
 });
 
-router.post("/", authenticationEnsurer, csrfProtection, (req, res, next) => {
+router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) => {
   const scheduleId = uuid.v4();
   const updatedAt = new Date();
   Schedule.create({
     scheduleId: scheduleId,
-    scheduleName: req.body.scheduleName.slice(0, 255) || "noName",
+    scheduleName: req.body.scheduleName.slice(0, 255) || 'noName',
     memo: req.body.memo,
     createdBy: req.user.id,
     updatedAt: updatedAt,
@@ -29,30 +29,30 @@ router.post("/", authenticationEnsurer, csrfProtection, (req, res, next) => {
   });
 });
 
-router.get("/:scheduleId", authenticationEnsurer, (req, res, next) => {
+router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
   let storedSchedule = null;
   let storedCandidates = null;
   Schedule.findOne({
     include: [
       {
         model: User,
-        attributes: ["userId", "username"],
+        attributes: ['userId', 'username'],
       },
     ],
     where: {
       scheduleId: req.params.scheduleId,
     },
-    order: [["updatedAt", "DESC"]],
+    order: [['updatedAt', 'DESC']],
   })
     .then((schedule) => {
       if (schedule) {
         storedSchedule = schedule;
         return Candidate.findAll({
           where: { scheduleId: schedule.scheduleId },
-          order: [["candidateId", "ASC"]],
+          order: [['candidateId', 'ASC']],
         });
       } else {
-        const err = new Error("notFound");
+        const err = new Error('notFound');
         err.status = 404;
         next(err);
       }
@@ -64,13 +64,13 @@ router.get("/:scheduleId", authenticationEnsurer, (req, res, next) => {
         include: [
           {
             model: User,
-            attributes: ["userId", "username"],
+            attributes: ['userId', 'username'],
           },
         ],
         where: { scheduleId: storedSchedule.scheduleId },
         order: [
-          [User, "username", "ASC"],
-          ['"candidateId"', "ASC"],
+          [User, 'username', 'ASC'],
+          ['"candidateId"', 'ASC'],
         ],
       });
     })
@@ -117,7 +117,7 @@ router.get("/:scheduleId", authenticationEnsurer, (req, res, next) => {
         comments.forEach((comment) => {
           commentMap.set(comment.userId, comment.comment);
         });
-        res.render("schedule", {
+        res.render('schedule', {
           user: req.user,
           schedule: storedSchedule,
           candidates: storedCandidates,
@@ -130,7 +130,7 @@ router.get("/:scheduleId", authenticationEnsurer, (req, res, next) => {
 });
 
 router.get(
-  "/:scheduleId/edit",
+  '/:scheduleId/edit',
   authenticationEnsurer,
   csrfProtection,
   (req, res, next) => {
@@ -143,9 +143,9 @@ router.get(
         // 作成者のみが編集フォームを開ける
         Candidate.findAll({
           where: { scheduleId: schedule.scheduleId },
-          order: [['"candidateId"', "ASC"]],
+          order: [['"candidateId"', 'ASC']],
         }).then((candidates) => {
-          res.render("edit", {
+          res.render('edit', {
             user: req.user,
             schedule: schedule,
             candidates: candidates,
@@ -153,7 +153,7 @@ router.get(
           });
         });
       } else {
-        const err = new Error("notFound");
+        const err = new Error('notFound');
         err.status = 404;
         next(err);
       }
@@ -166,7 +166,7 @@ function isMine(req, schedule) {
 }
 
 router.post(
-  "/:scheduleId",
+  '/:scheduleId',
   authenticationEnsurer,
   csrfProtection,
   (req, res, next) => {
@@ -182,7 +182,7 @@ router.post(
             .update({
               scheduleId: schedule.scheduleId,
               scheduleName:
-                req.body.scheduleName.slice(0, 255) || "（名称未設定）",
+                req.body.scheduleName.slice(0, 255) || '（名称未設定）',
               memo: req.body.memo,
               createdBy: req.user.id,
               updatedAt: updatedAt,
@@ -197,20 +197,20 @@ router.post(
                   res
                 );
               } else {
-                res.redirect("/schedules/" + schedule.scheduleId);
+                res.redirect('/schedules/' + schedule.scheduleId);
               }
             });
         } else if (parseInt(req.query.delete) === 1) {
           deleteScheduleAggregate(req.params.scheduleId, () => {
-            res.redirect("/");
+            res.redirect('/');
           });
         } else {
-          const err = new Error("bad request");
+          const err = new Error('bad request');
           err.status = 400;
           next(err);
         }
       } else {
-        const err = new Error("notFound");
+        const err = new Error('notFound');
         err.status = 404;
         next(err);
       }
@@ -271,16 +271,16 @@ function createCandidatesAndRedirect(candidateNames, scheduleId, res) {
     };
   });
   Candidate.bulkCreate(candidates).then(() => {
-    res.redirect("/schedules/" + scheduleId);
+    res.redirect('/schedules/' + scheduleId);
   });
 }
 
 function parseCandidateNames(req) {
   return req.body.candidates
     .trim()
-    .split("\n")
+    .split('\n')
     .map((s) => s.trim())
-    .filter((s) => s !== "");
+    .filter((s) => s !== '');
 }
 
 module.exports = router;

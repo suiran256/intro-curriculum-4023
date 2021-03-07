@@ -1,3 +1,6 @@
 node_modules/
 *.log
 .env
+.eslintrc.js
+.prettierrc.js
+app/.eslintrc.js
