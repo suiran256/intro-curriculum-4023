@@ -43,8 +43,8 @@ passport.use(
     {
       clientID: GITHUB_CLIENT_ID,
       clientSecret: GITHUB_CLIENT_SECRET,
-      callbackURL: process.env.HEROKU_URL
-        ? process.env.HEROKU_URL + 'auth/github/callback'
+      callbackURL: process.env.SERVER_URL
+        ? process.env.SERVER_URL + 'auth/github/callback'
         : 'http://localhost:3000/auth/github/callback',
     },
     function (accessToken, refreshToken, profile, done) {
