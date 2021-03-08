@@ -1,37 +1,34 @@
 'use strict';
-const { Model } = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  class Candidate extends Model {
-    static associate(models) {
-      Candidate.hasMany(models.Availability, { foreignKey: 'candidateId' });
-    }
-  }
-  Candidate.init(
-    {
-      candidateId: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        allowNull: false,
-      },
-      candidateName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      scheduleId: {
-        type: DataTypes.UUID,
-        allowNull: false,
-      },
+const loader = require('./sequelize-loader');
+const Sequelize = loader.Sequelize;
+
+const Candidate = loader.database.define(
+  'Candidate',
+  {
+    candidateId: {
+      type: Sequelize.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+      allowNull: false,
     },
-    {
-      sequelize,
-      timestamps: false,
-      indexes: [
-        {
-          fields: ['scheduleId'],
-        },
-      ],
-    }
-  );
-  return Candidate;
-};
+    candidateName: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+    scheduleId: {
+      type: Sequelize.UUID,
+      allowNull: false,
+    },
+  },
+  {
+    freezeTableName: true,
+    timestamps: false,
+    indexes: [
+      {
+        fields: ['scheduleId'],
+      },
+    ],
+  }
+);
+
+module.exports = Candidate;

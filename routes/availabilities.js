@@ -2,8 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const authenticationEnsurer = require('./authentication-ensurer');
-//const Availability = require('../models/availability');
-const { Availability } = require('../models/index');
+const Availability = require('../models/availability');
+//const { Availability } = require('../models/index');
 
 router.post(
   '/:scheduleId/users/:userId/candidates/:candidateId',

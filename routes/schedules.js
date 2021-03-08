@@ -6,10 +6,13 @@ const uuid = require('uuid');
 const csrf = require('csurf');
 const csrfProtection = csrf({ cookie: true });
 
-const createError = require('http-errors');
-
-const db = require('../models/index');
-const { User, Schedule, Candidate, Availability, Comment } = db;
+//const db = require('../models/index');
+//const { User, Schedule, Candidate, Availability, Comment } = db;
+const User = require('../models/user');
+const Schedule = require('../models/schedule');
+const Candidate = require('../models/candidate');
+const Availability = require('../models/availability');
+const Comment = require('../models/comment');
 
 router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
   res.render('new', { user: req.user, csrfToken: req.csrfToken() });

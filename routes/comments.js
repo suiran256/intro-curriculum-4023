@@ -2,8 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const authenticationEnsurer = require('./authentication-ensurer');
-//const Comment = require('../models/comment');
-const { Comment } = require('../models/index');
+const Comment = require('../models/comment');
+//const { Comment } = require('../models/index');
 
 router.post(
   '/:scheduleId/users/:userId/comments',

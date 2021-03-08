@@ -6,13 +6,19 @@ const passportStub = require('passport-stub');
 const assert = require('assert');
 const util = require('util');
 const cheerio = require('cheerio');
-const {
-  User,
-  Schedule,
-  Candidate,
-  Availability,
-  Comment,
-} = require('../models/index');
+//const {
+//  User,
+//  Schedule,
+//  Candidate,
+//  Availability,
+//  Comment,
+//} = require('../models/index');
+const User = require('../models/user');
+const Schedule=require('../models/schedule');
+const Candidate=require('../models/candidate');
+const Availability= require('../models/availability');
+const Comment=require('../models/comment');
+
 const app = require('../app');
 const deleteScheduleAggregate = require('../routes/schedules')
   .deleteScheduleAggregate;

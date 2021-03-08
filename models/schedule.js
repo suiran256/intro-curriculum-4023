@@ -1,44 +1,41 @@
 'use strict';
-const { Model } = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  class Schedule extends Model {
-    static associate(models) {
-      Schedule.belongsTo(models.User, { foreignKey: 'createdBy' });
-    }
-  }
-  Schedule.init(
-    {
-      scheduleId: {
-        type: DataTypes.UUID,
-        primaryKey: true,
-        allowNull: false,
-      },
-      scheduleName: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      memo: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-      },
-      createdBy: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-      },
-      updatedAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-      },
+const loader = require('./sequelize-loader');
+const Sequelize = loader.Sequelize;
+
+const Schedule = loader.database.define(
+  'Schedule',
+  {
+    scheduleId: {
+      type: Sequelize.UUID,
+      primaryKey: true,
+      allowNull: false,
     },
-    {
-      sequelize,
-      timestamps: false,
-      indexes: [
-        {
-          fields: ['createdBy'],
-        },
-      ],
-    }
-  );
-  return Schedule;
-};
+    scheduleName: {
+      type: Sequelize.STRING,
+      allowNull: false,
+    },
+    memo: {
+      type: Sequelize.TEXT,
+      allowNull: false,
+    },
+    createdBy: {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+    },
+    updatedAt: {
+      type: Sequelize.DATE,
+      allowNull: false,
+    },
+  },
+  {
+    freezeTableName: true,
+    timestamps: false,
+    indexes: [
+      {
+        fields: ['createdBy'],
+      },
+    ],
+  }
+);
+
+module.exports = Schedule;

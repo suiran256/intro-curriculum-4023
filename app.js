@@ -10,23 +10,6 @@ var session = require('express-session');
 var passport = require('passport');
 var app = express();
 
-const nodemailer = require('nodemailer');
-const transporter = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: process.env.MAIL_PORT,
-  secure: process.env.MAIL_SECURE,
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
-const mailData = {
-  from: 'suiran256@gmail.com',
-  to: 'suiran256@gmail.com',
-  text: 'createTet\ntest2',
-  subject: 'test',
-};
-
 var indexRouter = require('./routes/index');
 var loginRouter = require('./routes/login');
 var logoutRouter = require('./routes/logout');
@@ -34,9 +17,24 @@ var schedulesRouter = require('./routes/schedules');
 var availabilitiesRouter = require('./routes/availabilities');
 var commentsRouter = require('./routes/comments');
 
-//const db = require('./models/index');
-const db = require('./models');
-const User = db.User;
+//const db = require('./models');
+//const User = db.User;
+const User = require('./models/user');
+const Schedule = require('./models/schedule');
+const Candidate = require('./models/candidate');
+const Availability = require('./models/availability');
+const Comment = require('./models/comment');
+User.sync().then(() => {
+  Schedule.belongsTo(User, { foreignKey: 'createdBy' });
+  Schedule.sync();
+  Comment.belongsTo(User, { foreignKey: 'userId' });
+  Comment.sync();
+  Availability.belongsTo(User, { foreignKey: 'userId' });
+  Candidate.sync().then(() => {
+    Availability.belongsTo(Candidate, { foreignKey: 'candidateId' });
+    Availability.sync();
+  });
+});
 
 app.use(helmet());
 app.set('views', path.join(__dirname, 'views'));
