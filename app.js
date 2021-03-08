@@ -17,13 +17,13 @@ var schedulesRouter = require('./routes/schedules');
 var availabilitiesRouter = require('./routes/availabilities');
 var commentsRouter = require('./routes/comments');
 
-//const db = require('./models');
-//const User = db.User;
-const User = require('./models/user');
-const Schedule = require('./models/schedule');
-const Candidate = require('./models/candidate');
-const Availability = require('./models/availability');
-const Comment = require('./models/comment');
+const db = require('./models');
+const { User, Schedule, Candidate, Availability, Comment } = db;
+//const User = require('./models/user');
+//const Schedule = require('./models/schedule');
+//const Candidate = require('./models/candidate');
+//const Availability = require('./models/availability');
+//const Comment = require('./models/comment');
 User.sync().then(() => {
   Schedule.belongsTo(User, { foreignKey: 'createdBy' });
   Schedule.sync();
