@@ -5,7 +5,24 @@ const moment = require('moment-timezone');
 const { Schedule } = require('../models/index');
 // const Schedule= require('../models/schedule');
 
-router.get('/', (req, res, next) => {
+const path = require('path');
+const fs = require('fs');
+const cors = require('cors');
+// const corsOptions = {
+//   origin: '*',
+// };
+router.get('/img/:filename', cors(), (req, res, next) => {
+  fs.readFile(
+    path.join(__dirname, `/img/${req.params.filename}`),
+    function (err, data) {
+      if (err) return next(err);
+      res.set('Content-Type', 'image/jpeg');
+      res.send(data);
+    }
+  );
+});
+
+router.get('/', (req, res) => {
   const title = 'title';
   if (req.user) {
     Schedule.findAll({
