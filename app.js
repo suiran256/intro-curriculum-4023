@@ -16,25 +16,7 @@ var logoutRouter = require('./routes/logout');
 var schedulesRouter = require('./routes/schedules');
 var availabilitiesRouter = require('./routes/availabilities');
 var commentsRouter = require('./routes/comments');
-
-const db = require('./models');
-const { User, Schedule, Candidate, Availability, Comment } = db;
-//const User = require('./models/user');
-//const Schedule = require('./models/schedule');
-//const Candidate = require('./models/candidate');
-//const Availability = require('./models/availability');
-//const Comment = require('./models/comment');
-User.sync().then(() => {
-  Schedule.belongsTo(User, { foreignKey: 'createdBy' });
-  Schedule.sync();
-  Comment.belongsTo(User, { foreignKey: 'userId' });
-  Comment.sync();
-  Availability.belongsTo(User, { foreignKey: 'userId' });
-  Candidate.sync().then(() => {
-    Availability.belongsTo(Candidate, { foreignKey: 'candidateId' });
-    Availability.sync();
-  });
-});
+const { User } = require('./models');
 
 app.use(helmet());
 app.set('views', path.join(__dirname, 'views'));
