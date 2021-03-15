@@ -33,7 +33,7 @@ router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) => {
 router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
   let storedSchedule = null;
   let storedCandidates = null;
-  Schedule.findOne({
+  return Schedule.findOne({
     include: [
       {
         model: User,
@@ -53,10 +53,10 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
           order: [['"candidateId"', 'ASC']],
         });
       } else {
-        // throw createError(404, 'notFoundaaaaaaaaa');
-        const err = new Error('notFound');
-        err.status = 404;
-        next(err);
+        throw createError(404, 'notFoundaaaaaaaaa');
+        // const err = new Error('notFound');
+        // err.status = 404;
+        // next(err);
       }
     })
     .then((candidates) => {
@@ -128,8 +128,8 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
           commentMap: commentMap,
         });
       });
-    });
-  // .catch(next);
+    })
+    .catch(next);
 });
 
 router.get(
