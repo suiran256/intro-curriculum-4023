@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+//* eslint-disable no-unused-vars */
 'use strict';
 const uuid = require('uuid');
 const createError = require('http-errors');
@@ -31,12 +31,8 @@ router.post('/', authenticationEnsure, csrfProtection, (req, res, next) => {
     .then(() => {
       return createCandidates(parseCandidateNames(req), scheduleId);
     })
-    .then((candidates) => {
-      if (!candidates.length) {
-        res.redirect('/');
-      } else {
-        res.redirect(`/schedules/${scheduleId}`);
-      }
+    .then(() => {
+      res.redirect(`/schedules/${scheduleId}`);
     })
     .catch(next);
 });
@@ -44,14 +40,13 @@ router.post('/', authenticationEnsure, csrfProtection, (req, res, next) => {
 router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
   const scheduleId = req.params.scheduleId;
   (async () => {
-    const schedule = await Schedule.findOne({
+    const schedule = await Schedule.findByPk(scheduleId, {
       include: [
         {
           model: User,
           attributes: ['userId', 'username'],
         },
       ],
-      where: { scheduleId: scheduleId },
     });
     if (!schedule) return next(createError(404, 'notFound'));
 
@@ -91,29 +86,44 @@ router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
         username: req.user.username,
       };
       userMap.set(userIdMe, userMe);
+      let prevUserId = null;
       availabilities.forEach((a) => {
         const userId = a.User.userId;
-        userMap.set(a.User.userId, {
-          isSelf: userId === userIdMe,
-          userId: a.User.userId,
-          username: a.User.username,
-        });
-        const map = availabilityMapMap.get(a.User.userId) || new Map();
+        if (prevUserId !== userId) {
+          userMap.set(userId, {
+            isSelf: userId === userIdMe,
+            userId: userId,
+            username: a.User.username,
+          });
+          prevUserId = userId;
+        }
+        const map = availabilityMapMap.get(userId) || new Map();
         map.set(a.candidateId, a.availability);
-        availabilityMapMap.set(a.User.userId, map);
+        availabilityMapMap.set(userId, map);
+        // const map = availabilityMapMap.get(userId);
+        // if (map) {
+        //   map.set(a.candidateId, a.availability);
+        // } else {
+        //   availabilityMapMap.set(
+        //     userId,
+        //     new Map([[a.candidateId, a.availability]])
+        //   );
+        // }
       });
 
-      const users = Array.from(userMap).map((entry) => entry[1]);
+      const users = Array.from(userMap.values());
       users.forEach((u) => {
         candidates.forEach((c) => {
-          const map = availabilityMapMap.get(u.userId) || new Map();
-          const a = map.get(c.candidateId) || 0;
-          map.set(c.candidateId, a);
-          availabilityMapMap.set(u.userId, map);
+          const userId = u.userId;
+          const candidateId = c.candidateId;
+          const map = availabilityMapMap.get(userId) || new Map();
+          const a = map.get(candidateId) || 0;
+          map.set(candidateId, a);
+          availabilityMapMap.set(userId, map);
         });
       });
 
-      return { candidates, userMap, availabilityMapMap, users };
+      return { candidates, availabilityMapMap, users /*,userMap*/ };
     })();
 
     const promiseMakeCommentMap = (async () => {
@@ -122,20 +132,22 @@ router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
       comments.forEach((c) => {
         commentMap.set(c.userId, c.comment);
       });
-      return commentMap;
+      return { commentMap };
     })();
 
-    const [r1, r2] = await Promise.all([
+    //分けるのはやりすぎだと思うが練習として実施
+    const [
+      { candidates, availabilityMapMap, users /*,userMap*/ },
+      { commentMap },
+    ] = await Promise.all([
       promiseMakeAvailabilityMapMap,
       promiseMakeCommentMap,
     ]);
-    const { candidates, userMap, availabilityMapMap, users } = r1;
-    const commentMap = r2;
 
     res.render('schedule', {
       user: req.user,
       schedule: schedule,
-      userMap: userMap,
+      //userMap: userMap,
       candidates: candidates,
       availabilityMapMap: availabilityMapMap,
       commentMap: commentMap,
@@ -180,19 +192,28 @@ router.post(
         if (!isUpdatable(req, schedule)) throw createError(404, 'notFound');
         if (Number(req.query.edit) === 1) {
           const updatedAt = new Date();
-          return schedule
-            .update({
-              scheduleName: req.body.scheduleName.slice(0, 255) || 'noname',
-              memo: req.body.memo,
-              updatedAt: updatedAt,
-            })
-            .then(() => {
-              return createCandidates(parseCandidateNames(req), scheduleId);
-            })
-            .then(() => {
-              res.redirect(`/schedules/${scheduleId}`);
-            })
-            .catch(next);
+          return (
+            schedule
+              .update({
+                scheduleName: req.body.scheduleName.slice(0, 255) || 'noname',
+                memo: req.body.memo,
+                updatedAt: updatedAt,
+              })
+              .then(() => {
+                return createCandidates(
+                  parseCandidateNames(req),
+                  scheduleId,
+                  (err) => {
+                    if (err) return next(err);
+                    res.redirect(`/schedules/${scheduleId}`);
+                  }
+                );
+              })
+              // .then(() => {
+              //   res.redirect(`/schedules/${scheduleId}`);
+              // })
+              .catch(next)
+          );
         } else if (Number(req.query.delete) === 1) {
           // return deleteScheduleAggregate(scheduleId, (err) => {
           //   if (err) return next(err);
@@ -210,16 +231,20 @@ router.post(
 );
 
 //candidateNamesは[string]にparseされた状態
-function createCandidates(candidateNames, scheduleId) {
-  if (!candidateNames.length) {
-    return Promise.resolve([]);
-  }
+function createCandidates(candidateNames, scheduleId, done) {
   return (async function () {
     const candidates = candidateNames.map((c) => {
       return { candidateName: c, scheduleId: scheduleId };
     });
-    return await Candidate.bulkCreate(candidates);
-  })();
+    await Candidate.bulkCreate(candidates);
+    if (done) return done();
+    return;
+  })().catch((err) => {
+    if (done) {
+      return done(err);
+    }
+    throw err;
+  });
 }
 function parseCandidateNames(req) {
   const candidateNameString = req.body.candidates || '';
