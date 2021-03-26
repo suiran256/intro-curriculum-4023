@@ -41,14 +41,25 @@ function fnAfterDefault(done) {
     })
     .catch(done);
 }
-function fnAfterEachDefault(done) { Promise.all(
-    this.scheduleIdStack.map((s) => new Promise((resolve,reject)=>deleteScheduleAggregate(s, (err) =>{ if (err) reject(err);resolve();}))))
+function fnAfterEachDefault(done) {
+  Promise.all(
+    this.scheduleIdStack.map(
+      (s) =>
+        new Promise((resolve, reject) =>
+          deleteScheduleAggregate(s, (err) => {
+            if (err) reject(err);
+            resolve();
+          })
+        )
+    )
+  )
     .then(() => {
       this.scheduleId = null;
       this.scheduleIdStack = [];
       console.log('********* afterEach finished');
       done();
-    }).catch(done);
+    })
+    .catch(done);
 }
 //function fnAfterEachDefault(done) { Promise.all(
 //    this.scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
