@@ -224,6 +224,8 @@ router.post(
               res.redirect('/');
             })
             .catch(next);
+        } else {
+          throw createError(400, 'badRequest');
         }
       })
       .catch(next);
