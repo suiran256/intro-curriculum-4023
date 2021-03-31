@@ -54,8 +54,7 @@ function fnAfterEachDefault(done) {
     )
   )
     .then(() => {
-      this.scheduleId = null;
-      this.scheduleIdStack = [];
+      this.clearScheduleIdStack();
       console.log('********* afterEach finished');
       done();
     })
@@ -89,25 +88,33 @@ function DescribeObj({
   this.fnAfter = fnAfter.bind(this);
   this.fnAfterEach = fnAfterEach.bind(this);
 }
+DescribeObj.prototype.addScheduleId=function(scheduleId){
+  this.scheduleIdStack.push(scheduleId);
+  this.scheduleId = scheduleId;
+};
+DescribeObj.prototype.removeScheduleId=function(scheduleId){
+  this.scheduleIdStack.splice(
+    this.scheduleIdStack.indexOf(scheduleId),
+    1
+  );
+  this.scheduleId =
+    this.scheduleIdStack[this.scheduleIdStack.length - 1];
+}
+DescribeObj.prototype.clearScheduleIdStack=function(){
+  this.scheduleId = null;
+  this.scheduleIdStack = [];
+};
+//scheduleId:最近に追加されたもの
+DescribeObj.prototype.getScheduleId=function(){
+  if (!this.scheduleId) throw new Error('need scheduleId in obj');
+  return this.scheduleId;
+}
+
 function ItObj(describeObj = new DescribeObj()) {
   this.res = null;
-  this.addScheduleId = (scheduleId) => {
-    describeObj.scheduleIdStack.push(scheduleId);
-    describeObj.scheduleId = scheduleId;
-  };
-  this.removeScheduleId = (scheduleId) => {
-    describeObj.scheduleIdStack.splice(
-      describeObj.scheduleIdStack.indexOf(scheduleId),
-      1
-    );
-    describeObj.scheduleId =
-      describeObj.scheduleIdStack[describeObj.scheduleIdStack.length - 1];
-  };
-  //scheduleId:最近に追加されたもの
-  this.getScheduleId = () => {
-    if (!describeObj.scheduleId) throw new Error('need scheduleId in obj');
-    return describeObj.scheduleId;
-  };
+  this.addScheduleId = describeObj.addScheduleId.bind(describeObj);
+  this.removeScheduleId = describeObj.removeScheduleId.bind(describeObj);
+  this.getScheduleId = describeObj.getScheduleId.bind(describeObj);
 }
 
 const getAsync = ({ path } = {}) => {
