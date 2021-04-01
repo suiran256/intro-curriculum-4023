@@ -1,293 +1,303 @@
+//* eslint-disable no-unused-vars */
 'use strict';
+const uuid = require('uuid');
+const createError = require('http-errors');
 const express = require('express');
 const router = express.Router();
-const authenticationEnsurer = require('./authentication-ensurer');
-const uuid = require('uuid');
-const csrf = require('csurf');
-const csrfProtection = csrf({ cookie: true });
+const {
+  User,
+  Schedule,
+  Candidate,
+  Availability,
+  Comment,
+} = require('../models/index');
+const authenticationEnsure = require('../routes/authentication-ensurer');
+const csrfProtection = require('csurf')({ cookie: true });
 
-const db = require('../models/index');
-const { User, Schedule, Candidate, Availability, Comment } = db;
-// const User = require('../models/user');
-// const Schedule = require('../models/schedule');
-// const Candidate = require('../models/candidate');
-// const Availability = require('../models/availability');
-// const Comment = require('../models/comment');
-
-router.get('/new', authenticationEnsurer, csrfProtection, (req, res, next) => {
+router.get('/new', authenticationEnsure, csrfProtection, (req, res) => {
   res.render('new', { user: req.user, csrfToken: req.csrfToken() });
 });
 
-router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) => {
+router.post('/', authenticationEnsure, csrfProtection, (req, res, next) => {
   const scheduleId = uuid.v4();
   const updatedAt = new Date();
-
   Schedule.create({
     scheduleId: scheduleId,
     scheduleName: req.body.scheduleName.slice(0, 255) || 'noname',
     memo: req.body.memo,
     createdBy: req.user.id,
     updatedAt: updatedAt,
-  }).then((schedule) => {
-    createCandidatesAndRedirect(parseCandidateNames(req), scheduleId, res);
-  });
+  })
+    .then(() => {
+      return createCandidates(parseCandidateNames(req), scheduleId);
+    })
+    .then(() => {
+      res.redirect(`/schedules/${scheduleId}`);
+    })
+    .catch(next);
 });
 
-router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
-  let storedSchedule = null;
-  let storedCandidates = null;
-  Schedule.findOne({
-    include: [
-      {
-        model: User,
-        attributes: ['userId', 'username'],
-      },
-    ],
-    where: {
-      scheduleId: req.params.scheduleId,
-    },
-    order: [['"updatedAt"', 'DESC']],
-  })
-    .then((schedule) => {
-      if (schedule) {
-        storedSchedule = schedule;
-        return Candidate.findAll({
-          where: { scheduleId: schedule.scheduleId },
-          order: [['"candidateId"', 'ASC']],
-        });
-      } else {
-        // throw createError(404, 'notFoundaaaaaaaaa');
-        const err = new Error('notFound');
-        err.status = 404;
-        next(err);
-      }
-    })
-    .then((candidates) => {
-      // データベースからその予定の全ての出欠を取得する
-      storedCandidates = candidates;
-      return Availability.findAll({
-        include: [
-          {
-            model: User,
-            attributes: ['userId', 'username'],
-          },
-        ],
-        where: { scheduleId: storedSchedule.scheduleId },
-        order: [
-          [User, '"username"', 'ASC'],
-          ['"candidateId"', 'ASC'],
-        ],
-      });
-    })
-    .then((availabilities) => {
-      // 出欠 MapMap(キー:ユーザー ID, 値:出欠Map(キー:候補 ID, 値:出欠)) を作成する
-      const availabilityMapMap = new Map(); // key: userId, value: Map(key: candidateId, availability)
-      availabilities.forEach((a) => {
-        const map = availabilityMapMap.get(a.User.userId) || new Map();
-        map.set(a.candidateId, a.availability);
-        availabilityMapMap.set(a.User.userId, map);
-      });
-
-      // 閲覧ユーザーと出欠に紐づくユーザーからユーザー Map (キー:ユーザー ID, 値:ユーザー) を作る
-      const userMap = new Map(); // key: userId, value: User
-      userMap.set(parseInt(req.user.id), {
-        isSelf: true,
-        userId: parseInt(req.user.id),
-        username: req.user.username,
-      });
-      availabilities.forEach((a) => {
-        userMap.set(a.User.userId, {
-          isSelf: parseInt(req.user.id) === a.User.userId, // 閲覧ユーザー自身であるかを含める
-          userId: a.User.userId,
-          username: a.User.username,
-        });
-      });
-
-      // 全ユーザー、全候補で二重ループしてそれぞれの出欠の値がない場合には、「欠席」を設定する
-      const users = Array.from(userMap).map((keyValue) => keyValue[1]);
-      users.forEach((u) => {
-        storedCandidates.forEach((c) => {
-          const map = availabilityMapMap.get(u.userId) || new Map();
-          const a = map.get(c.candidateId) || 0; // デフォルト値は 0 を利用
-          map.set(c.candidateId, a);
-          availabilityMapMap.set(u.userId, map);
-        });
-      });
-
-      // コメント取得
-      return Comment.findAll({
-        where: { scheduleId: storedSchedule.scheduleId },
-      }).then((comments) => {
-        const commentMap = new Map(); // key: userId, value: comment
-        comments.forEach((comment) => {
-          commentMap.set(comment.userId, comment.comment);
-        });
-        res.render('schedule', {
-          user: req.user,
-          schedule: storedSchedule,
-          candidates: storedCandidates,
-          users: users,
-          availabilityMapMap: availabilityMapMap,
-          commentMap: commentMap,
-        });
-      });
+router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
+  const scheduleId = req.params.scheduleId;
+  (async () => {
+    const schedule = await Schedule.findByPk(scheduleId, {
+      include: [
+        {
+          model: User,
+          attributes: ['userId', 'username'],
+        },
+      ],
     });
-  // .catch(next);
+    if (!schedule) return next(createError(404, 'notFound'));
+
+    const promiseCandidate = Candidate.findAll({
+      where: { scheduleId: scheduleId },
+      order: [['"candidateId"', 'ASC']],
+    });
+    const promiseAvailability = Availability.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ['userId', 'username'],
+        },
+      ],
+      where: { scheduleId: scheduleId },
+      order: [
+        [User, '"username"', 'ASC'],
+        ['"candidateId"', 'ASC'],
+      ],
+    });
+    const promiseComment = Comment.findAll({
+      where: { scheduleId: scheduleId },
+    });
+
+    const promiseMakeAvailabilityMapMap = (async () => {
+      const [candidates, availabilities] = await Promise.all([
+        promiseCandidate,
+        promiseAvailability,
+      ]);
+
+      const availabilityMapMap = new Map();
+      const userMap = new Map();
+      const userIdMe = Number(req.user.id);
+      const userMeDummy = {
+        isSelf: true,
+        userId: userIdMe,
+        username: req.user.username,
+      };
+      userMap.set(userIdMe, userMeDummy);
+      let prevUserId = null;
+      availabilities.forEach((a) => {
+        const userId = a.User.userId;
+        if (prevUserId !== userId) {
+          userMap.set(userId, {
+            isSelf: userId === userIdMe,
+            userId: userId,
+            username: a.User.username,
+          });
+          prevUserId = userId;
+        }
+        const map = availabilityMapMap.get(userId) || new Map();
+        map.set(a.candidateId, a.availability);
+        availabilityMapMap.set(userId, map);
+      });
+
+      const userMe = userMap.get(userIdMe);
+      userMap.delete(userIdMe);
+
+      // const users = Array.from(userMap.values());
+      // users.forEach((u) => {
+      //   candidates.forEach((c) => {
+      //     const userId = u.userId;
+      //     const candidateId = c.candidateId;
+      //     const map = availabilityMapMap.get(userId) || new Map();
+      //     const a = map.get(candidateId) || 0;
+      //     map.set(candidateId, a);
+      //     availabilityMapMap.set(userId, map);
+      //   });
+      // });
+
+      return { candidates, availabilityMapMap, userMap, userMe };
+    })();
+
+    const promiseMakeCommentMap = (async () => {
+      const comments = await promiseComment;
+      const commentMap = new Map();
+      comments.forEach((c) => {
+        commentMap.set(c.userId, c.comment);
+      });
+      return { commentMap };
+    })();
+
+    //分けるのはやりすぎだと思うが練習として実施
+    const [
+      { candidates, availabilityMapMap, userMap, userMe },
+      { commentMap },
+    ] = await Promise.all([
+      promiseMakeAvailabilityMapMap,
+      promiseMakeCommentMap,
+    ]);
+
+    res.render('schedule', {
+      user: req.user,
+      schedule,
+      userMap,
+      userMe,
+      candidates,
+      availabilityMapMap,
+      commentMap,
+    });
+  })().catch(next);
 });
 
 router.get(
   '/:scheduleId/edit',
-  authenticationEnsurer,
+  authenticationEnsure,
   csrfProtection,
   (req, res, next) => {
-    Schedule.findOne({
-      where: {
-        scheduleId: req.params.scheduleId,
-      },
-    }).then((schedule) => {
-      if (isMine(req, schedule)) {
-        // 作成者のみが編集フォームを開ける
-        Candidate.findAll({
-          where: { scheduleId: schedule.scheduleId },
-          order: [['"candidateId"', 'ASC']],
-        }).then((candidates) => {
+    const scheduleId = req.params.scheduleId;
+    Schedule.findByPk(scheduleId).then((schedule) => {
+      if (!isUpdatable(req, schedule)) throw createError(404, 'notFound');
+      return Candidate.findAll({
+        where: { scheduleId: scheduleId },
+        order: [['"candidateId"', 'ASC']],
+      })
+        .then((candidates) => {
           res.render('edit', {
             user: req.user,
             schedule: schedule,
             candidates: candidates,
             csrfToken: req.csrfToken(),
           });
-        });
-      } else {
-        const err = new Error('error');
-        err.status = 404;
-        next(err);
-      }
+        })
+        .catch(next);
     });
   }
 );
-
-function isMine(req, schedule) {
-  return schedule && parseInt(schedule.createdBy) === parseInt(req.user.id);
-}
 
 router.post(
   '/:scheduleId',
-  authenticationEnsurer,
+  authenticationEnsure,
   csrfProtection,
   (req, res, next) => {
-    Schedule.findOne({
-      where: {
-        scheduleId: req.params.scheduleId,
-      },
-    }).then((schedule) => {
-      if (schedule && isMine(req, schedule)) {
-        if (parseInt(req.query.edit) === 1) {
+    const scheduleId = req.params.scheduleId;
+    Schedule.findByPk(scheduleId)
+      .then((schedule) => {
+        if (!isUpdatable(req, schedule)) throw createError(404, 'notFound');
+        if (Number(req.query.edit) === 1) {
           const updatedAt = new Date();
-          schedule
-            .update({
-              scheduleId: schedule.scheduleId,
-              scheduleName: req.body.scheduleName.slice(0, 255) || 'noName',
-              memo: req.body.memo,
-              createdBy: req.user.id,
-              updatedAt: updatedAt,
-            })
-            .then((schedule) => {
-              // 追加されているかチェック
-              const candidateNames = parseCandidateNames(req);
-              if (candidateNames) {
-                createCandidatesAndRedirect(
-                  candidateNames,
-                  schedule.scheduleId,
-                  res
+          return (
+            schedule
+              .update({
+                scheduleName: req.body.scheduleName.slice(0, 255) || 'noname',
+                memo: req.body.memo,
+                updatedAt: updatedAt,
+              })
+              .then(() => {
+                return createCandidates(
+                  parseCandidateNames(req),
+                  scheduleId,
+                  (err) => {
+                    if (err) return next(err);
+                    res.redirect(`/schedules/${scheduleId}`);
+                  }
                 );
-              } else {
-                res.redirect('/schedules/' + schedule.scheduleId);
-              }
+              })
+              // .then(() => {
+              //   res.redirect(`/schedules/${scheduleId}`);
+              // })
+              .catch(next)
+          );
+        } else if (Number(req.query.delete) === 1) {
+          // return deleteScheduleAggregate(scheduleId, (err) => {
+          //   if (err) return next(err);
+          //   res.redirect('/');
+          // });
+          return deleteScheduleAggregate(scheduleId)
+            .then(() => {
+              res.redirect('/');
             })
             .catch(next);
-        } else if (parseInt(req.query.delete) === 1) {
-          deleteScheduleAggregate(req.params.scheduleId, () => {
-            res.redirect('/');
-          });
         } else {
-          const err = new Error('badRequest');
-          err.status = 400;
-          next(err);
+          throw createError(400, 'badRequest');
         }
-      } else {
-        const err = new Error('error');
-        err.status = 404;
-        next(err);
-      }
-    });
+      })
+      .catch(next);
   }
 );
 
-function deleteScheduleAggregate(scheduleId, done, err) {
-  const promiseCommentDestroy = Comment.findAll({
-    where: { scheduleId: scheduleId },
-  }).then((comments) => {
-    return Promise.all(
-      comments.map((c) => {
-        return c.destroy();
-      })
-    );
+//candidateNamesは[string]にparseされた状態
+function createCandidates(candidateNames, scheduleId, done) {
+  return (async function () {
+    const candidates = candidateNames.map((c) => {
+      return { candidateName: c, scheduleId: scheduleId };
+    });
+    await Candidate.bulkCreate(candidates);
+    if (done) return done();
+    return;
+  })().catch((err) => {
+    if (done) {
+      return done(err);
+    }
+    throw err;
   });
+}
+function parseCandidateNames(req) {
+  const candidateNameString = req.body.candidates || '';
+  return candidateNameString
+    .split('\n')
+    .map((c) => c.trim())
+    .filter((c) => c !== '');
+}
 
-  Availability.findAll({
-    //return Availability.findAll({
-    where: { scheduleId: scheduleId },
-  })
-    .then((availabilities) => {
-      const promises = availabilities.map((a) => {
-        return a.destroy();
-      });
-      return Promise.all(promises);
+function isUpdatable(req, schedule) {
+  return schedule && schedule.createdBy === Number.parseInt(req.user.id);
+}
+
+function deleteScheduleAggregate(scheduleId, done) {
+  const asyncDeleteAvailabilities = async () => {
+    return Availability.findAll({
+      where: { scheduleId: scheduleId },
     })
+      .then((availabilities) => availabilities.map((a) => a.destroy()))
+      .then((promises) => Promise.all(promises));
+  };
+  const asyncDeleteComments = async () => {
+    return Comment.findAll({
+      where: { scheduleId: scheduleId },
+    })
+      .then((comments) => comments.map((c) => c.destroy()))
+      .then((promises) => Promise.all(promises));
+  };
+
+  const asyncDeleteCandidates = async () => {
+    return Candidate.findAll({
+      where: { scheduleId: scheduleId },
+    })
+      .then((candidates) => candidates.map((c) => c.destroy()))
+      .then((promises) => Promise.all(promises));
+  };
+  const asyncDeleteSchedule = async () => {
+    return Schedule.findByPk(scheduleId).then((s) => s.destroy());
+  };
+  return asyncDeleteAvailabilities()
+    .then(() =>
+      Promise.all([
+        asyncDeleteAvailabilities().then(asyncDeleteCandidates),
+        asyncDeleteComments(),
+      ])
+    )
+    .then(asyncDeleteSchedule)
     .then(() => {
-      return Candidate.findAll({
-        where: { scheduleId: scheduleId },
-      });
+      //done();
+      if (done) return done();
     })
-    .then((candidates) => {
-      const promises = candidates.map((c) => {
-        return c.destroy();
-      });
-      promises.push(promiseCommentDestroy);
-      return Promise.all(promises);
-    })
-    .then(() => {
-      return Schedule.findByPk(scheduleId).then((s) => {
-        return s.destroy();
-      });
-    })
-    .then(() => {
-      if (err) return done(err);
-      return done();
+    .catch((err) => {
+      if (done) return done(err);
+      //done(err);
+      throw err;
     });
 }
-
 router.deleteScheduleAggregate = deleteScheduleAggregate;
-
-function createCandidatesAndRedirect(candidateNames, scheduleId, res) {
-  const candidates = candidateNames.map((c) => {
-    return {
-      candidateName: c,
-      scheduleId: scheduleId,
-    };
-  });
-  Candidate.bulkCreate(candidates).then(() => {
-    res.redirect('/schedules/' + scheduleId);
-  });
-}
-
-function parseCandidateNames(req) {
-  return req.body.candidates
-    .trim()
-    .split('\n')
-    .map((s) => s.trim())
-    .filter((s) => s !== '');
-}
 
 module.exports = router;

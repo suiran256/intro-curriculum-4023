@@ -14,37 +14,38 @@ block content
       a(href=`/schedules/${schedule.scheduleId}/edit`).btn.btn-info editSchedule
   h3.my-3 availabilities
   table.table.table-bordered
+    - var users = Array.from(userMap.values())
+    - var availabilityLabels = ['ketsu', '?', 'de'];
+    - var buttonStyles = ['btn-danger', 'btn-secondary', 'btn-success'];
     tr
       th candidate
+      th #{userMe.username}
       each user in users
         th #{user.username}
     each candidate in candidates
+      - var getAvailability = function(u){return ((availabilityMapMap.get(u.userId)||new Map()).get(candidate.candidateId) ||0)}
       tr
         th #{candidate.candidateName}
+        td
+          - var availability = getAvailability(userMe)
+          button(class=`availability-toggle-button btn-lg ${buttonStyles[availability]}`
+            data-schedule-id=schedule.scheduleId
+            data-user-id=userMe.userId
+            data-candidate-id=candidate.candidateId
+            data-availability=availability) #{availabilityLabels[availability]}
         each user in users
-          - var availability = availabilityMapMap.get(user.userId).get(candidate.candidateId)
-          - var availabilityLabels = ['ketsu', '?', 'de'];
-          - var buttonStyles = ['btn-danger', 'btn-secondary', 'btn-success'];
+          - var availability = getAvailability(user)
           td
-            if user.isSelf
-              button(class=`availability-toggle-button btn-lg ${buttonStyles[availability]}`
-                data-schedule-id=schedule.scheduleId
-                data-user-id=user.userId
-                data-candidate-id=candidate.candidateId
-                data-availability=availability) #{availabilityLabels[availability]}
-            else
-              h3 #{availabilityLabels[availability]}
+            h3 #{availabilityLabels[availability]}
     tr
       th comment
+      td
+        p
+          small#self-comment #{commentMap.get(userMe.userId)}
+        button(
+          data-schedule-id=schedule.scheduleId
+          data-user-id=userMe.userId)#self-comment-button.btn-sm.btn-info edit
       each user in users
-        if user.isSelf
-          td
-            p
-              small#self-comment #{commentMap.get(user.userId)}
-            button(
-              data-schedule-id=schedule.scheduleId
-              data-user-id=user.userId)#self-comment-button.btn-sm.btn-info edit
-        else
-          td
-            p
-              small #{commentMap.get(user.userId)}
+        td
+          p
+            small #{commentMap.get(user.userId)}
