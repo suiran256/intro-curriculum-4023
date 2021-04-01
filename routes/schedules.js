@@ -105,17 +105,17 @@ router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
       const userMe = userMap.get(userIdMe);
       userMap.delete(userIdMe);
 
-      const users = Array.from(userMap.values());
-      users.forEach((u) => {
-        candidates.forEach((c) => {
-          const userId = u.userId;
-          const candidateId = c.candidateId;
-          const map = availabilityMapMap.get(userId) || new Map();
-          const a = map.get(candidateId) || 0;
-          map.set(candidateId, a);
-          availabilityMapMap.set(userId, map);
-        });
-      });
+      // const users = Array.from(userMap.values());
+      // users.forEach((u) => {
+      //   candidates.forEach((c) => {
+      //     const userId = u.userId;
+      //     const candidateId = c.candidateId;
+      //     const map = availabilityMapMap.get(userId) || new Map();
+      //     const a = map.get(candidateId) || 0;
+      //     map.set(candidateId, a);
+      //     availabilityMapMap.set(userId, map);
+      //   });
+      // });
 
       return { candidates, availabilityMapMap, userMap, userMe };
     })();
@@ -140,12 +140,12 @@ router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
 
     res.render('schedule', {
       user: req.user,
-      schedule: schedule,
-      userMap: userMap,
-      userMe: userMe,
-      candidates: candidates,
-      availabilityMapMap: availabilityMapMap,
-      commentMap: commentMap,
+      schedule,
+      userMap,
+      userMe,
+      candidates,
+      availabilityMapMap,
+      commentMap,
     });
   })().catch(next);
 });
@@ -281,7 +281,12 @@ function deleteScheduleAggregate(scheduleId, done) {
     return Schedule.findByPk(scheduleId).then((s) => s.destroy());
   };
   return asyncDeleteAvailabilities()
-    .then(Promise.all([asyncDeleteCandidates(), asyncDeleteComments()]))
+    .then(() =>
+      Promise.all([
+        asyncDeleteAvailabilities().then(asyncDeleteCandidates),
+        asyncDeleteComments(),
+      ])
+    )
     .then(asyncDeleteSchedule)
     .then(() => {
       //done();

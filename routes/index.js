@@ -8,9 +8,6 @@ router.get('/', (req, res, next) => {
   const title = 'title';
   if (req.user) {
     Schedule.findAll({
-      where: {
-        createdBy: req.user.id,
-      },
       order: [['"updatedAt"', 'DESC']],
     }).then((schedules) => {
       schedules.forEach((schedule) => {
