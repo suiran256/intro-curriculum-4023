@@ -80,12 +80,12 @@ router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
       const availabilityMapMap = new Map();
       const userMap = new Map();
       const userIdMe = Number(req.user.id);
-      const userMe = {
+      const userMeDummy = {
         isSelf: true,
         userId: userIdMe,
         username: req.user.username,
       };
-      userMap.set(userIdMe, userMe);
+      userMap.set(userIdMe, userMeDummy);
       let prevUserId = null;
       availabilities.forEach((a) => {
         const userId = a.User.userId;
@@ -100,16 +100,10 @@ router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
         const map = availabilityMapMap.get(userId) || new Map();
         map.set(a.candidateId, a.availability);
         availabilityMapMap.set(userId, map);
-        // const map = availabilityMapMap.get(userId);
-        // if (map) {
-        //   map.set(a.candidateId, a.availability);
-        // } else {
-        //   availabilityMapMap.set(
-        //     userId,
-        //     new Map([[a.candidateId, a.availability]])
-        //   );
-        // }
       });
+
+      const userMe = userMap.get(userIdMe);
+      userMap.delete(userIdMe);
 
       const users = Array.from(userMap.values());
       users.forEach((u) => {
@@ -123,7 +117,7 @@ router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
         });
       });
 
-      return { candidates, availabilityMapMap, users /*,userMap*/ };
+      return { candidates, availabilityMapMap, userMap, userMe };
     })();
 
     const promiseMakeCommentMap = (async () => {
@@ -137,7 +131,7 @@ router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
 
     //分けるのはやりすぎだと思うが練習として実施
     const [
-      { candidates, availabilityMapMap, users /*,userMap*/ },
+      { candidates, availabilityMapMap, userMap, userMe },
       { commentMap },
     ] = await Promise.all([
       promiseMakeAvailabilityMapMap,
@@ -147,11 +141,11 @@ router.get('/:scheduleId', authenticationEnsure, (req, res, next) => {
     res.render('schedule', {
       user: req.user,
       schedule: schedule,
-      //userMap: userMap,
+      userMap: userMap,
+      userMe: userMe,
       candidates: candidates,
       availabilityMapMap: availabilityMapMap,
       commentMap: commentMap,
-      users: users,
     });
   })().catch(next);
 });
