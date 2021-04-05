@@ -14,8 +14,8 @@ const {
   Comment,
 } = require('../models/index');
 
-function createCandidates(req, scheduleId) {
-  (async () => {
+function fetchCreateCandidates(req, scheduleId) {
+  return async () => {
     const candidateNamesStr = req.body.candidates || '';
     const candidates = candidateNamesStr
       .split('\n')
@@ -23,34 +23,26 @@ function createCandidates(req, scheduleId) {
       .filter((s) => s !== '')
       .map((name) => ({ candidateName: name, scheduleId: scheduleId }));
     return await Candidate.bulkCreate(candidates);
-  })();
+  };
 }
 function isUpdatable(schedule, req) {
   return schedule && Number(req.user.id) === schedule.createdBy;
 }
 function deleteScheduleAggregate(scheduleId) {
-  const asyncDeleteAvailability = () =>
-    Availability.findAll({
+  const fetchDeleteAll = (Model) =>
+    Model.findAll({
       where: { scheduleId: scheduleId },
     })
-      .then((availabilities) => availabilities.map((a) => a.destroy()))
+      .then((elements) => elements.map((element) => element.destroy()))
       .then((promises) => Promise.all(promises));
 
-  const asyncDeleteCandidate = () =>
-    Candidate.findAll({ where: { scheduleId: scheduleId } })
-      .then((candidates) => candidates.map((c) => c.destroy()))
-      .then((promises) => Promise.all(promises));
-  const asyncDeleteComment = () =>
-    Comment.findAll({ where: { scheduleId: scheduleId } })
-      .then((comments) => comments.map((c) => c.destroy()))
-      .then((promises) => Promise.all(promises));
-  const asyncDeleteSchedule = () =>
+  const fetchDeleteSchedule = () =>
     Schedule.findByPk(scheduleId).then((s) => s.destroy());
 
   return Promise.all([
-    asyncDeleteAvailability().then(asyncDeleteCandidate),
-    asyncDeleteComment(),
-  ]).then(asyncDeleteSchedule);
+    fetchDeleteAll(Availability).then(() => fetchDeleteAll(Candidate)),
+    fetchDeleteAll(Comment),
+  ]).then(fetchDeleteSchedule);
 }
 
 router.get('/new', authenticationEnsurer, csrfProtection, (req, res) => {
@@ -68,7 +60,7 @@ router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) => {
       createdBy: req.user.id,
       updatedAt: updatedAt,
     });
-    await createCandidates(req, scheduleId);
+    await fetchCreateCandidates(req, scheduleId)();
     res.redirect(`/schedules/${scheduleId}`);
   })().catch(next);
 });
@@ -81,11 +73,12 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
     });
     if (!schedule) throw createError(404, 'notFound');
 
-    const promiseCandidates = Candidate.findAll({
-      where: { scheduleId: scheduleId },
-      order: [['"candidateId"', 'ASC']],
-    });
-    const promiseMapOfAvailabilityAndUser = (async () => {
+    const fetchCandidates = () =>
+      Candidate.findAll({
+        where: { scheduleId: scheduleId },
+        order: [['"candidateId"', 'ASC']],
+      });
+    const fetchAvailabilityMapMapANDUserMap = async () => {
       const userIdMe = Number(req.user.id);
       const userMe = {
         userId: userIdMe,
@@ -109,8 +102,8 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
       userMapWork.delete(userIdMe);
       const userOtherMap = userMapWork;
       return { userMe, userOtherMap, availabilityMapMap };
-    })();
-    const promiseMapOfComment = (async () => {
+    };
+    const fetchCommentMap = async () => {
       const commentMap = new Map();
       const comments = await Comment.findAll({
         where: { scheduleId: scheduleId },
@@ -119,16 +112,16 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) => {
         commentMap.set(c.userId, c.comment);
       });
       return { commentMap };
-    })();
+    };
 
     const [
       candidates,
       { userMe, userOtherMap, availabilityMapMap },
       { commentMap },
     ] = await Promise.all([
-      promiseCandidates,
-      promiseMapOfAvailabilityAndUser,
-      promiseMapOfComment,
+      fetchCandidates(),
+      fetchAvailabilityMapMapANDUserMap(),
+      fetchCommentMap(),
     ]);
     res.render('schedule', {
       user: req.user,
@@ -176,29 +169,30 @@ router.post(
       const schedule = await Schedule.findByPk(scheduleId);
       if (!isUpdatable(schedule, req)) throw createError(404, 'notFound');
 
+      const fetchEdit = async () => {
+        await schedule.update({
+          scheduleName: req.body.scheduleName.slice(0, 255) || 'noname',
+          memo: req.body.memo,
+          updatedAt: updatedAt,
+        });
+        await fetchCreateCandidates(req, scheduleId)();
+        res.redirect(`/schedules/${scheduleId}`);
+      };
+      const fetchDelete = async () => {
+        await deleteScheduleAggregate(scheduleId);
+        res.redirect('/');
+      };
+
       if (Number(req.query.edit) === 1) {
-        return (async () => {
-          await schedule.update({
-            scheduleName: req.body.scheduleName.slice(0, 255) || 'noname',
-            memo: req.body.memo,
-            updatedAt: updatedAt,
-          });
-          await createCandidates(req, scheduleId);
-          res.redirect(`/schedules/${scheduleId}`);
-        })().catch(next);
+        return fetchEdit().catch(next);
       } else if (Number(req.query.delete) === 1) {
-        return deleteScheduleAggregate(scheduleId)
-          .then(() => {
-            res.redirect('/');
-          })
-          .catch(next);
+        return fetchDelete().catch(next);
       } else {
-        next(createError(400, 'badRequest'));
+        return next(createError(400, 'badRequest'));
       }
     })().catch(next);
   }
 );
 
-// module.exports = { ...router, deleteScheduleAggregate };
 router.deleteScheduleAggregate = deleteScheduleAggregate;
 module.exports = router;
