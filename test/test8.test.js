@@ -17,6 +17,7 @@ const {
 } = require('../models/index');
 
 const util = require('util');
+const { post } = require('../app');
 function promisifyResEnd(resObj) {
   return util.promisify(resObj.end).bind(resObj);
 }
@@ -99,7 +100,7 @@ const getAsync = ({ path } = {}) => {
 
     const resObj = request(app).get(path);
     const res = await promisifyResEnd(resObj)();
-    expect(res.status).toBe(200);
+    // expect(res.status).toBe(200);
     obj.res = res;
     return obj;
   };
@@ -110,7 +111,7 @@ const postAjaxAsync = ({ path, data = {} } = {}) => {
     if (!obj) throw new Error('need obj value');
     const resObj = request(app).post(path).send(data);
     const res = await promisifyResEnd(resObj)();
-    expect(res.status).toBe(200);
+    // expect(res.status).toBe(200);
     obj.res = res;
     return obj;
   };
@@ -130,8 +131,8 @@ const postAsync = ({ path, data = {} } = {}) => {
       .send({ _csrf: csrf, ...data });
 
     const res = await promisifyResEnd(resObj)();
-    //TODO: 302以外をどう扱うかは保留。
-    expect(res.status).toBe(302);
+    // TODO: 302以外をどう扱うかは保留。
+    // expect(res.status).toBe(302);
     obj.res = res;
     return obj;
   };
@@ -364,6 +365,73 @@ const deleteScheduleAsync = async (obj) => {
   return obj;
 };
 
+describe('getPostToolErrorHandling', () => {
+  const describeObj = new DescribeObj();
+  beforeAll(describeObj.fnBefore);
+  afterAll(describeObj.fnAfter);
+  afterEach(describeObj.fnAfterEach);
+  it('getAsyncDoError', () => {
+    return expect(getAsync()).rejects.toThrow('path');
+  });
+  it('postAsyncDoError', () => {
+    return expect(postAsync()).rejects.toThrow('path');
+  });
+  it('postAjaxAsyncDoError', () => {
+    return expect(postAjaxAsync()).rejects.toThrow('path');
+  });
+});
+describe('/:schedule/ ErrorHandling', () => {
+  const describeObj = new DescribeObj();
+  beforeAll(describeObj.fnBefore);
+  afterAll(describeObj.fnAfter);
+  afterEach(describeObj.fnAfterEach);
+
+  it('post / notExistScheduleName', async () => {
+    let obj = new ItObj(describeObj);
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    obj = await postAsync({
+      path: '/schedules/',
+      data: { memo: 'memo1' },
+    })(obj);
+    return expect(obj.res.status).toBe(500);
+  });
+  it('post / notExistMemo', async () => {
+    let obj = new ItObj(describeObj);
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    obj = await postAsync({
+      path: '/schedules/',
+      data: { scheduleName: 'scheduleName1' },
+    })(obj);
+    return expect(obj.res.status).toBe(500);
+  });
+  it('post / scheduleNameは空文字でOK', async () => {
+    let obj = new ItObj(describeObj);
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    obj = await postAsync({
+      path: '/schedules/',
+      data: { scheduleName: '', memo: 'memo1' },
+    })(obj);
+    return expect(obj.res.status).toBe(302);
+  });
+  it('post / memoは空文字列でOK', async () => {
+    let obj = new ItObj(describeObj);
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    obj = await postAsync({
+      path: '/schedules/',
+      data: { scheduleName: 'scheduleName1', memo: '' },
+    })(obj);
+    return expect(obj.res.status).toBe(302);
+  });
+  it('post / scheduleNameオーバーフロー対策(10000文字まで確認)', async () => {
+    let obj = new ItObj(describeObj);
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    obj = await postAsync({
+      path: '/schedules/',
+      data: { scheduleName: 'a'.repeat(1000000), memo: 'memo1' },
+    })(obj);
+    expect(obj.res.status).toBe(413);
+  });
+});
 describe('/schedules', () => {
   const describeObj = new DescribeObj();
   beforeAll(describeObj.fnBefore);
