@@ -13,6 +13,7 @@ const {
   Availability,
   Comment,
 } = require('../models/index');
+const util = require('util');
 
 function fetchCreateCandidates(req, scheduleId) {
   return async () => {

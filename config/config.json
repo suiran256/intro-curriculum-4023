@@ -5,6 +5,13 @@
     "database": "schedule_arranger",
     "host": "localhost",
     "dialect": "postgres"
+  },
+
+  "test": {
+    "username": "postgres",
+    "password": "postgres",
+    "database": "schedule_arranger",
+    "host": "localhost",
+    "dialect": "postgres"
   }
-  
 }
