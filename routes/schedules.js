@@ -13,14 +13,13 @@ const {
   Availability,
   Comment,
 } = require('../models/index');
-const util = require('util');
 
 function fetchCreateCandidates(req, scheduleId) {
   return async () => {
     const candidateNamesStr = req.body.candidates || '';
     const candidates = candidateNamesStr
       .split('\n')
-      .map((s) => s.trim())
+      .map((s) => s.trim().slice(0, 255))
       .filter((s) => s !== '')
       .map((name) => ({ candidateName: name, scheduleId: scheduleId }));
     return await Candidate.bulkCreate(candidates);
@@ -56,8 +55,8 @@ router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) => {
     const updatedAt = new Date();
     await Schedule.create({
       scheduleId: scheduleId,
-      scheduleName: req.body.scheduleName.slice(0, 255) || 'noname',
-      memo: req.body.memo,
+      scheduleName: req.body.scheduleName.slice(0, 255) || 'noName',
+      memo: req.body.memo.slice(0, 255) || 'noMemo',
       createdBy: req.user.id,
       updatedAt: updatedAt,
     });

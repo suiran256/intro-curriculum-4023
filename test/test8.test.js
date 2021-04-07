@@ -1,5 +1,5 @@
 /* eslint-env jest */
-/* eslint-disable no-unused-vars */
+//* eslint-disable no-unused-vars */
 'use strict';
 
 const request = require('supertest');
@@ -17,7 +17,7 @@ const {
 } = require('../models/index');
 
 const util = require('util');
-const { post } = require('../app');
+
 function promisifyResEnd(resObj) {
   return util.promisify(resObj.end).bind(resObj);
 }
@@ -100,7 +100,7 @@ const getAsync = ({ path } = {}) => {
 
     const resObj = request(app).get(path);
     const res = await promisifyResEnd(resObj)();
-    // expect(res.status).toBe(200);
+
     obj.res = res;
     return obj;
   };
@@ -111,7 +111,7 @@ const postAjaxAsync = ({ path, data = {} } = {}) => {
     if (!obj) throw new Error('need obj value');
     const resObj = request(app).post(path).send(data);
     const res = await promisifyResEnd(resObj)();
-    // expect(res.status).toBe(200);
+
     obj.res = res;
     return obj;
   };
@@ -131,8 +131,7 @@ const postAsync = ({ path, data = {} } = {}) => {
       .send({ _csrf: csrf, ...data });
 
     const res = await promisifyResEnd(resObj)();
-    // TODO: 302以外をどう扱うかは保留。
-    // expect(res.status).toBe(302);
+
     obj.res = res;
     return obj;
   };
@@ -321,7 +320,6 @@ const deleteScheduleAsync = async (obj) => {
     path: '/',
   })(obj);
   expect(obj.res.text).toMatch(new RegExp(scheduleId));
-  // expect(obj.res.text).toMatch(new RegExp(scheduleId));
 
   obj = await getAsync({
     path: `/schedules/${scheduleId}/edit`,
@@ -370,13 +368,13 @@ describe('getPostToolErrorHandling', () => {
   beforeAll(describeObj.fnBefore);
   afterAll(describeObj.fnAfter);
   afterEach(describeObj.fnAfterEach);
-  it('getAsyncDoError', () => {
+  it('getAsync pathなしでError', () => {
     return expect(getAsync()).rejects.toThrow('path');
   });
-  it('postAsyncDoError', () => {
+  it('postAsync pathなしでError', () => {
     return expect(postAsync()).rejects.toThrow('path');
   });
-  it('postAjaxAsyncDoError', () => {
+  it('postAjaxAsync pathなしでError', () => {
     return expect(postAjaxAsync()).rejects.toThrow('path');
   });
 });
@@ -386,8 +384,47 @@ describe('/:schedule/ ErrorHandling', () => {
   afterAll(describeObj.fnAfter);
   afterEach(describeObj.fnAfterEach);
 
-  it('post / notExistScheduleName', async () => {
-    let obj = new ItObj(describeObj);
+  const getANDPostAsync = (data) =>
+    (async () => {
+      let obj = new ItObj();
+      obj = await getAsync({ path: '/schedules/new' })(obj);
+      return await postAsync({
+        path: '/schedules/',
+        data: data,
+      })(obj);
+    })();
+
+  it('get /schedules/new cookieなしで403', async () => {
+    let obj = new ItObj();
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    // const setCookie = obj.res.headers['set-cookie'];
+    const csrf = obj.res.text.match(/name="_csrf" value="(.*?)"/)[1];
+    if (!csrf) throw new Error('need to contain _csrf');
+    const resObj = request(app)
+      .post('/schedules/')
+      //cookieのsetなし .set('cookie', setCookie)
+      .send({ _csrf: csrf, scheduleName: 'a', memo: 'b', candidates: 'c' });
+    const res = await promisifyResEnd(resObj)();
+    return expect(res.status).toBe(403);
+  });
+  it('get /schedules/new _csrfなしで403', async () => {
+    let obj = new ItObj();
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    const setCookie = obj.res.headers['set-cookie'];
+    const csrf = obj.res.text.match(/name="_csrf" value="(.*?)"/)[1];
+    if (!csrf) throw new Error('need to contain _csrf');
+    const resObj = request(app)
+      .post('/schedules/')
+      .set('cookie', setCookie)
+      // _csrfなし
+      .send({ scheduleName: 'a', memo: 'b', candidates: 'c' });
+    const res = await promisifyResEnd(resObj)();
+    return expect(res.status).toBe(403);
+  });
+
+  //TODO: エラーコードは400(badRequest)が良いと思う
+  it('post /schedules scheduleNameのk-vがない場合は500', async () => {
+    let obj = new ItObj();
     obj = await getAsync({ path: '/schedules/new' })(obj);
     obj = await postAsync({
       path: '/schedules/',
@@ -395,8 +432,10 @@ describe('/:schedule/ ErrorHandling', () => {
     })(obj);
     return expect(obj.res.status).toBe(500);
   });
-  it('post / notExistMemo', async () => {
-    let obj = new ItObj(describeObj);
+
+  //TODO: エラーコードは400(badRequest)が良いと思う
+  it('post /schedules memoのk-vがない場合は500', async () => {
+    let obj = new ItObj();
     obj = await getAsync({ path: '/schedules/new' })(obj);
     obj = await postAsync({
       path: '/schedules/',
@@ -404,34 +443,99 @@ describe('/:schedule/ ErrorHandling', () => {
     })(obj);
     return expect(obj.res.status).toBe(500);
   });
-  it('post / scheduleNameは空文字でOK', async () => {
-    let obj = new ItObj(describeObj);
-    obj = await getAsync({ path: '/schedules/new' })(obj);
-    obj = await postAsync({
-      path: '/schedules/',
-      data: { scheduleName: '', memo: 'memo1' },
-    })(obj);
-    return expect(obj.res.status).toBe(302);
+
+  //100000文字程度で413になった
+  it('post /schedules scheduleName,memoオーバーフロー対策(約50000文字まで確認)', async () => {
+    const data = [...Array(10).keys()].map((s) => s * 5000 + 5000);
+    const dataArray = data.map((d) => ({
+      scheduleName: 'a'.repeat(d),
+      memo: 'b'.repeat(d),
+    }));
+    for (const d of dataArray) {
+      const obj = await getANDPostAsync(d);
+      //データ量が多すぎると413エラーとなる(仕様でOKとする)
+      expect(obj.res.status.toString()).toMatch(/302|413/);
+    }
   });
-  it('post / memoは空文字列でOK', async () => {
-    let obj = new ItObj(describeObj);
-    obj = await getAsync({ path: '/schedules/new' })(obj);
-    obj = await postAsync({
-      path: '/schedules/',
-      data: { scheduleName: 'scheduleName1', memo: '' },
-    })(obj);
-    return expect(obj.res.status).toBe(302);
+
+  //TODO: 値に入るエスケープ文字はどうなるのか。もしsequelizeで対応不足ならば,明示的なサニタイズの追加を考える
+  it('post /schedules scheduleNameデータ', async () => {
+    const data = [
+      '',
+      'a',
+      ' a',
+      'a\na',
+      '\n',
+      '\n\n',
+      ' \n \n ',
+      '\t',
+      '\t\t',
+      ' \t \t ',
+      'a'.repeat(50000),
+    ];
+    const dataArray = data.map((d) => ({
+      scheduleName: d,
+      memo: 'b',
+      candidates: 'c',
+    }));
+    for (const d of dataArray) {
+      const obj = await getANDPostAsync(d);
+      //データ量が多すぎると413エラーとなる(仕様でOK)
+      expect(obj.res.status.toString()).toMatch(/302|413/);
+    }
   });
-  it('post / scheduleNameオーバーフロー対策(10000文字まで確認)', async () => {
-    let obj = new ItObj(describeObj);
-    obj = await getAsync({ path: '/schedules/new' })(obj);
-    obj = await postAsync({
-      path: '/schedules/',
-      data: { scheduleName: 'a'.repeat(1000000), memo: 'memo1' },
-    })(obj);
-    expect(obj.res.status).toBe(413);
+  it('post /schedules memoデータ', async () => {
+    const data = [
+      '',
+      'a',
+      ' a',
+      'a\na',
+      '\n',
+      '\n\n',
+      ' \n \n ',
+      '\t',
+      '\t\t',
+      ' \t \t ',
+      'a'.repeat(50000),
+    ];
+    const dataArray = data.map((d) => ({
+      scheduleName: 'a',
+      memo: d,
+      candidates: 'c',
+    }));
+    for (const d of dataArray) {
+      const obj = await getANDPostAsync(d);
+      //データ量が多すぎると413エラーとなる(仕様でOK)
+      expect(obj.res.status.toString()).toMatch(/302|413/);
+    }
+  });
+  it('post /schedules candidatesデータ', async () => {
+    const data = [
+      '',
+      'a',
+      ' a',
+      'a\na',
+      '\n',
+      '\n\n',
+      ' \n \n ',
+      '\t',
+      '\t\t',
+      ' \t \t ',
+      'a'.repeat(50000),
+    ];
+    const dataArray = data.map((d) => ({
+      scheduleName: 'a',
+      memo: 'b',
+      candidates: d,
+    }));
+    for (const d of dataArray) {
+      const obj = await getANDPostAsync(d);
+      //データ量が多すぎると413エラーとなる(仕様でOK)
+      expect(obj.res.status.toString()).toMatch(/302|413/);
+    }
   });
 });
+
 describe('/schedules', () => {
   const describeObj = new DescribeObj();
   beforeAll(describeObj.fnBefore);
