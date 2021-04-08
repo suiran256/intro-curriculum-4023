@@ -1,29 +1,31 @@
 'use strict';
-const express = require('express');
-const router = express.Router();
-const authenticationEnsurer = require('./authentication-ensurer');
-//const Availability = require('../models/availability');
-const { Availability } = require('../models/index');
 
-router.post(
-  '/:scheduleId/users/:userId/candidates/:candidateId',
-  authenticationEnsurer,
-  (req, res, next) => {
+const authenticationEnsurer = require('./authentication-ensurer');
+const express = require('express');
+const { Availability } = require('../models/index');
+const router = express.Router();
+
+function fnUpsertAvailability(req, res, next) {
+  (async () => {
     const scheduleId = req.params.scheduleId;
     const userId = req.params.userId;
     const candidateId = req.params.candidateId;
     let availability = req.body.availability;
     availability = availability ? parseInt(availability) : 0;
-
-    Availability.upsert({
+    await Availability.upsert({
       scheduleId: scheduleId,
       userId: userId,
       candidateId: candidateId,
       availability: availability,
-    }).then(() => {
-      res.json({ status: 'OK', availability: availability });
     });
-  }
+    res.json({ status: 'OK', availability: availability });
+  })().catch(next);
+}
+
+router.post(
+  '/:scheduleId/users/:userId/candidates/:candidateId',
+  authenticationEnsurer,
+  fnUpsertAvailability
 );
 
 module.exports = router;

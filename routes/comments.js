@@ -1,26 +1,28 @@
 'use strict';
+const authenticationEnsurer = require('./authentication-ensurer');
 const express = require('express');
 const router = express.Router();
-const authenticationEnsurer = require('./authentication-ensurer');
-//const Comment = require('../models/comment');
+
 const { Comment } = require('../models/index');
 
-router.post(
-  '/:scheduleId/users/:userId/comments',
-  authenticationEnsurer,
-  (req, res, next) => {
+function fetchUpsertComment(req, res, next) {
+  (async () => {
     const scheduleId = req.params.scheduleId;
     const userId = req.params.userId;
     const comment = req.body.comment;
 
-    Comment.upsert({
+    await Comment.upsert({
       scheduleId: scheduleId,
       userId: userId,
       comment: comment.slice(0, 255),
-    }).then(() => {
-      res.json({ status: 'OK', comment: comment });
     });
-  }
+    res.json({ status: 'OK', comment: comment });
+  })().catch(next);
+}
+router.post(
+  '/:scheduleId/users/:userId/comments',
+  authenticationEnsurer,
+  fetchUpsertComment
 );
 
 module.exports = router;
