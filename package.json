@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "test": "NODE_PATH=${npm_package_config_resolve} jest --verbose --silent"
+    "test": "NODE_PATH=${npm_package_config_resolve} jest --verbose --silent",
+    "coverage": "NODE_PATH=${npm_package_config_resolve} jest --silent --coverage"
   },
   "jest": {
     "testRegex": "test/.*.js"
