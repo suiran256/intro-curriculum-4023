@@ -14,7 +14,7 @@ block content
       a(href=`/schedules/${schedule.scheduleId}/edit`).btn.btn-info editSchedule
   h3.my-3 availabilities
   table.table.table-bordered
-    - var users = Array.from(userMap.values())
+    - var users = Array.from(userOtherMap.values())
     - var availabilityLabels = ['ketsu', '?', 'de'];
     - var buttonStyles = ['btn-danger', 'btn-secondary', 'btn-success'];
     tr
