@@ -1,17 +1,5 @@
 {
   "development": {
-    "username": "postgres",
-    "password": "postgres",
-    "database": "schedule_arranger",
-    "host": "localhost",
-    "dialect": "postgres"
-  },
-
-  "test": {
-    "username": "postgres",
-    "password": "postgres",
-    "database": "schedule_arranger",
-    "host": "localhost",
-    "dialect": "postgres"
+    "use_env_variable": "DATABASE_URL"
   }
 }
