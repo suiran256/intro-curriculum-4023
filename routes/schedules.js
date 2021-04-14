@@ -14,16 +14,31 @@ const {
   Comment,
 } = require('../models/index');
 
-function upsertScheduleANDCandidates(req, scheduleId) {
+function createSchedule(req) {
   return (async () => {
+    const scheduleId = uuid.v4();
     const updatedAt = new Date();
-    await Schedule.upsert({
+    return await Schedule.create({
       scheduleId,
       scheduleName: req.body.scheduleName.slice(0, 255) || 'noName',
       memo: req.body.memo.slice(0, 255) || 'noMemo',
       createdBy: req.user.id,
       updatedAt,
     });
+  })();
+}
+function updateSchedule(req, schedule) {
+  return (async () => {
+    const updatedAt = new Date();
+    return await schedule.update({
+      scheduleName: req.body.scheduleName.slice(0, 255) || 'noName',
+      memo: req.body.memo.slice(0, 255) || 'noMemo',
+      updatedAt,
+    });
+  })();
+}
+function createCandidates(req, scheduleId) {
+  return (async () => {
     const candidates = (req.body.candidates || '')
       .split('\n')
       .map((s) => s.trim().slice(0, 255))
@@ -62,8 +77,9 @@ router.get('/new', authenticationEnsurer, csrfProtection, (req, res) => {
 
 router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) =>
   (async () => {
-    const scheduleId = uuid.v4();
-    await upsertScheduleANDCandidates(req, scheduleId);
+    const schedule = await createSchedule(req);
+    const scheduleId = schedule.scheduleId;
+    await createCandidates(req, scheduleId);
     res.redirect(`/schedules/${scheduleId}`);
   })().catch(next)
 );
@@ -168,10 +184,11 @@ router.post(
       });
       if (!isUpdatable(schedule, req)) throw createError(404, 'notFound');
 
-      const fetchEdit = () =>
-        upsertScheduleANDCandidates(req, scheduleId).then(() => {
-          res.redirect(`/schedules/${scheduleId}`);
-        });
+      const fetchEdit = async () => {
+        await updateSchedule(req, schedule);
+        await createCandidates(req, scheduleId);
+        res.redirect(`/schedules/${scheduleId}`);
+      };
       const fetchDelete = () =>
         deleteScheduleAggregate(scheduleId).then(() => {
           res.redirect('/');
