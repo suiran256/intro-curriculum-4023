@@ -52,7 +52,7 @@ function isUpdatable(schedule, req) {
 }
 function deleteScheduleAggregate(scheduleId) {
   return (async () => {
-    const schedule = Schedule.findByPk(scheduleId);
+    const schedule = await Schedule.findByPk(scheduleId);
     if (!schedule) throw new Error("don't exist schedule");
     const deleteAllAtModel = (Model) =>
       (async () => {
@@ -66,7 +66,7 @@ function deleteScheduleAggregate(scheduleId) {
       deleteAllAtModel(Availability).then(() => deleteAllAtModel(Candidate)),
       deleteAllAtModel(Comment),
     ]);
-    await schedule.then((s) => s.destroy());
+    await schedule.destroy();
     return;
   })();
 }
