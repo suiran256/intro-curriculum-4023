@@ -5,10 +5,29 @@
   "scripts": {
     "start": "node ./bin/www",
     "test": "NODE_PATH=${npm_package_config_resolve} jest  --silent --verbose",
-    "coverage": "NODE_PATH=${npm_package_config_resolve} jest --silent --coverage"
+    "coverage": "NODE_PATH=${npm_package_config_resolve} jest --silent --coverage",
+    "flow": "flow"
   },
   "jest": {
     "testRegex": "test/.*.js"
+  },
+  "languageserver": {
+    "flow": {
+      "command": "node_modules/.bin/flow",
+      "args": [
+        "lsp"
+      ],
+      "filetypes": [
+        "javascript",
+        "javascriptreact"
+      ],
+      "initializationOptions": {},
+      "requireRootPattern": true,
+      "settings": {},
+      "rootPatterns": [
+        ".flowconfig"
+      ]
+    }
   },
   "dependencies": {
     "bootstrap": "^4.0.0",
@@ -42,6 +61,7 @@
     "eslint": "^7.13.0",
     "eslint-config-prettier": "^6.15.0",
     "eslint-plugin-prettier": "^3.1.4",
+    "flow-bin": "^0.149.0",
     "mocha": "^8.3.2",
     "passport-stub": "^1.1.1",
     "prettier": "^2.1.2",

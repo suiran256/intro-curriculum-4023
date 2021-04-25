@@ -1,3 +1,4 @@
+// @flow
 /* eslint-disable no-unused-vars */
 'use strict';
 require('dotenv').config();
