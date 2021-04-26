@@ -6,7 +6,7 @@ module.exports = {
   },
   extends: ['eslint:recommended', 'plugin:prettier/recommended'],
   parserOptions: {
-    sourceType: 'module',
+    sourceType: 'common',
     ecmaVersion: 2018,
   },
 };
