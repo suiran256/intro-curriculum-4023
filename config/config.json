@@ -1,5 +1,17 @@
 {
-  "development": {
+  "production": {
     "use_env_variable": "DATABASE_URL"
+  },
+  "development": {
+    "database": "schedule_arranger",
+    "username": "postgres",
+    "password": "postgres",
+    "dialect": "postgres"
+  },
+  "test": {
+    "database": "schedule_arranger",
+    "username": "postgres",
+    "password": "postgres",
+    "dialect": "postgres"
   }
 }
