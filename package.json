@@ -5,12 +5,10 @@
   "scripts": {
     "startOld": "node ./bin/www",
     "start": "node ./bin/www.mjs",
-    "test": "NODE_PATH=${npm_package_config_resolve} jest  --silent --verbose",
+    "test": "NODE_PATH=${npm_package_config_resolve} jest  --silent --verbose --config ./jest.config.js",
     "coverage": "NODE_PATH=${npm_package_config_resolve} jest --silent --coverage"
   },
-  "jest": {
-    "testRegex": "test/.*.js"
-  },
+  "jest": {},
   "dependencies": {
     "bootstrap": "^4.0.0",
     "cheerio": "^1.0.0-rc.5",
