@@ -27,6 +27,7 @@ const {
 } = process.env;
 // const dirname = '/home/sui/workspace/intro-curriculum-4023/';
 const dirname = path.dirname(new URL(import.meta.url).pathname);
+// const dirname = 'import_meta_url';
 const app = express();
 
 passport.serializeUser((user, done) => done(null, user));

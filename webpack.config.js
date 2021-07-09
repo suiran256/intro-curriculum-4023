@@ -1,9 +1,9 @@
 module.exports = {
-  context: __dirname + '/app',
+  context: `${__dirname}/app`,
   entry: './entry',
   mode: 'none',
   output: {
-    path: __dirname + '/public/javascripts',
+    path: `${__dirname}/public/javascripts`,
     filename: 'bundle.js',
   },
   module: {
@@ -13,9 +13,9 @@ module.exports = {
         exclude: /node_modules/,
         use: {
           loader: 'babel-loader',
-          // options: {
-          // presets: ['@babel/preset-env']
-          // }
+          options: {
+            presets: ['@babel/preset-env'],
+          },
         },
       },
     ],
