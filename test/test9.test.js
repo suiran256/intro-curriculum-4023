@@ -1,30 +1,28 @@
-/* eslint-env mocha */
+/* eslint-env jest */
 //* eslint-disable no-unused-vars */
-'use strict';
-const request = require('supertest');
-const passportStub = require('passport-stub');
-const assert = require('assert');
-const util = require('util');
-const cheerio = require('cheerio');
-const {
-  User,
-  Schedule,
-  Candidate,
-  Availability,
-  Comment,
-} = require('../models/index');
-const app = require('../app');
-const deleteScheduleAggregate = require('../routes/schedules')
-  .deleteScheduleAggregate;
-
+import util from 'util';
+import request from 'supertest';
+import passportStub from 'passport-stub';
+import cheerio from 'cheerio';
+import app from '../app.mjs';
+import schedulesRouter from '../routes/schedules.js';
+import db from '../models/index.js';
+const { deleteScheduleAggregate } = schedulesRouter;
+const { User, Schedule, Candidate, Availability, Comment, sequelize } = db;
+ 
 function promisifyResEnd(resObj) {
   return util.promisify(resObj.end).bind(resObj);
 }
+
+afterAll(() => {
+  sequelize.close();
+});
+
 function fnBeforeDefault(done) {
-  User.upsert({ userId: 0, username: 'testuser' })
+  User.upsert({ userId: 0, username: 'testUser' })
     .then(() => {
       passportStub.install(app);
-      passportStub.login({ id: 0, username: 'testuser' });
+      passportStub.login({ id: 0, username: 'testUser' });
       console.log('********* before finished');
       done();
     })
@@ -50,22 +48,6 @@ function fnAfterEachDefault(done) {
     })
     .catch(done);
 }
-//function fnAfterEachDefault(done) { Promise.all(
-//    this.scheduleIdStack.map((s) => deleteScheduleAggregate(s, () => {}))
-//  )
-//    .then(() => {
-//      this.scheduleId = null;
-//      this.scheduleIdStack = [];
-//      console.log('********* afterEach finished');
-//      done();
-//    })
-//    .catch(done);
-//}
-
-// function test(done) {
-//   console.log('**************** test');
-//   return done();
-// }
 
 function DescribeObj({
   fnBefore = fnBeforeDefault,
@@ -107,9 +89,10 @@ const getAsync = ({ path } = {}) => {
   if (!path) return () => Promise.reject(new Error('need path value'));
   return async function (obj) {
     if (!obj) throw new Error('need obj value');
+
     const resObj = request(app).get(path);
     const res = await promisifyResEnd(resObj)();
-    assert.strictEqual(res.status, 200);
+
     obj.res = res;
     return obj;
   };
@@ -120,7 +103,7 @@ const postAjaxAsync = ({ path, data = {} } = {}) => {
     if (!obj) throw new Error('need obj value');
     const resObj = request(app).post(path).send(data);
     const res = await promisifyResEnd(resObj)();
-    assert.strictEqual(res.status, 200);
+
     obj.res = res;
     return obj;
   };
@@ -140,8 +123,7 @@ const postAsync = ({ path, data = {} } = {}) => {
       .send({ _csrf: csrf, ...data });
 
     const res = await promisifyResEnd(resObj)();
-    //TODO: 302以外をどう扱うかは保留。
-    assert.strictEqual(res.status, 302);
+
     obj.res = res;
     return obj;
   };
@@ -165,23 +147,23 @@ const createScheduleInitialAsync = async (obj) => {
   obj.addScheduleId(scheduleId);
 
   const schedule = await Schedule.findByPk(scheduleId);
-  assert.strictEqual(!!schedule, true);
-  assert.strictEqual(schedule.scheduleName, 'scheduleName1');
-  assert.strictEqual(schedule.memo, 'memo1');
+  expect(!!schedule).toBe(true);
+  expect(schedule.scheduleName).toBe('scheduleName1');
+  expect(schedule.memo).toBe('memo1');
   const candidates = await Candidate.findAll({
     where: { scheduleId: scheduleId },
     order: [['"candidateId"', 'ASC']],
   });
-  assert.strictEqual(candidates.length, 1);
-  assert.strictEqual(candidates[0].candidateName, 'can1');
+  expect(candidates.length).toBe(1);
+  expect(candidates[0].candidateName).toBe('can1');
 
   obj = await getAsync({
     path: schedulePath,
   })(obj);
-  assert.match(obj.res.text, /testuser/);
-  assert.match(obj.res.text, />scheduleName1</);
-  assert.match(obj.res.text, />memo1</);
-  assert.match(obj.res.text, />can1</);
+  expect(obj.res.text).toMatch(/testUser/);
+  expect(obj.res.text).toMatch(/>scheduleName1</);
+  expect(obj.res.text).toMatch(/>memo1</);
+  expect(obj.res.text).toMatch(/>can1</);
 
   return obj;
 };
@@ -193,7 +175,7 @@ const updateAvailabilityAsync = async (obj) => {
     where: { scheduleId: scheduleId },
     order: [['"candidateId"', 'ASC']],
   });
-  // assert.strictEqual(
+  // expect(
   //   !!candidate,
   //   true,
   //   'need more 1 candidates before this test'
@@ -205,12 +187,12 @@ const updateAvailabilityAsync = async (obj) => {
     }`,
     data: { availability: 1 },
   })(obj);
-  assert.strictEqual(obj.res.text, '{"status":"OK","availability":1}');
+  expect(obj.res.text).toBe('{"status":"OK","availability":1}');
   const availabilities1 = await Availability.findAll({
     where: [{ userId: 0 }, { candidateId: candidate.candidateId }],
   });
-  assert.strictEqual(availabilities1.length, 1);
-  assert.strictEqual(availabilities1[0].availability, 1);
+  expect(availabilities1.length).toBe(1);
+  expect(availabilities1[0].availability).toBe(1);
 
   obj = await postAjaxAsync({
     path: `/schedules/${scheduleId}/users/${0}/candidates/${
@@ -218,12 +200,12 @@ const updateAvailabilityAsync = async (obj) => {
     }`,
     data: { availability: 2 },
   })(obj);
-  assert.strictEqual(obj.res.text, '{"status":"OK","availability":2}');
+  expect(obj.res.text).toBe('{"status":"OK","availability":2}');
   const availabilities2 = await Availability.findAll({
     where: [{ userId: 0 }, { candidateId: candidate.candidateId }],
   });
-  assert.strictEqual(availabilities2.length, 1);
-  assert.strictEqual(availabilities2[0].availability, 2);
+  expect(availabilities2.length).toBe(1);
+  expect(availabilities2[0].availability).toBe(2);
 
   obj = await getAsync({
     path: `/schedules/${scheduleId}`,
@@ -232,16 +214,14 @@ const updateAvailabilityAsync = async (obj) => {
   const nodes = $(
     `.availability-toggle-button[data-user-id="0"][data-candidate-id="${candidate.candidateId}"]`
   ).toArray();
-  assert.strictEqual(
+  expect(
     nodes.filter((element) => $(element).attr('data-availability') === '1')
-      .length,
-    0
-  );
-  assert.strictEqual(
+      .length
+  ).toBe(0);
+  expect(
     nodes.filter((element) => $(element).attr('data-availability') === '2')
-      .length,
-    1
-  );
+      .length
+  ).toBe(1);
 
   return obj;
 };
@@ -253,29 +233,29 @@ const updateCommentAsync = async (obj) => {
     path: `/schedules/${scheduleId}/users/${0}/comments`,
     data: { comment: 'commentA' },
   })(obj);
-  assert.strictEqual(obj.res.text, '{"status":"OK","comment":"commentA"}');
+  expect(obj.res.text).toBe('{"status":"OK","comment":"commentA"}');
   const comments1 = await Comment.findAll({
     where: { scheduleId: scheduleId },
   });
-  assert.strictEqual(comments1.length, 1);
-  assert.strictEqual(comments1[0].comment, 'commentA');
+  expect(comments1.length).toBe(1);
+  expect(comments1[0].comment).toBe('commentA');
 
   obj = await postAjaxAsync({
     path: `/schedules/${scheduleId}/users/${0}/comments`,
     data: { comment: 'commentB' },
   })(obj);
-  assert.strictEqual(obj.res.text, '{"status":"OK","comment":"commentB"}');
+  expect(obj.res.text).toBe('{"status":"OK","comment":"commentB"}');
   const comments2 = await Comment.findAll({
     where: { scheduleId: scheduleId },
   });
-  assert.strictEqual(comments2.length, 1);
-  assert.strictEqual(comments2[0].comment, 'commentB');
+  expect(comments2.length).toBe(1);
+  expect(comments2[0].comment).toBe('commentB');
 
   obj = await getAsync({
     path: `/schedules/${scheduleId}`,
   })(obj);
-  assert.match(obj.res.text, />commentB</);
-  assert.doesNotMatch(obj.res.text, />commentA</);
+  expect(obj.res.text).toMatch(/>commentB</);
+  expect(obj.res.text).not.toMatch(/>commentA</);
 
   return obj;
 };
@@ -296,31 +276,31 @@ const editScheduleAsync = async (obj) => {
   })(obj);
 
   const schedule = await Schedule.findByPk(scheduleId);
-  assert.strictEqual(!!schedule, true);
-  assert.strictEqual(schedule.scheduleName, 'scheduleName2');
-  assert.strictEqual(schedule.memo, 'memo2');
+  expect(!!schedule).toBe(true);
+  expect(schedule.scheduleName).toBe('scheduleName2');
+  expect(schedule.memo).toBe('memo2');
   const candidates = await Candidate.findAll({
     where: { scheduleId: scheduleId },
     order: [['"candidateId"', 'ASC']],
   });
-  assert.strictEqual(candidates.length, 3);
-  assert.strictEqual(candidates[0].candidateName, 'can1');
-  assert.strictEqual(candidates[1].candidateName, 'can2');
-  assert.strictEqual(candidates[2].candidateName, 'can3');
+  expect(candidates.length).toBe(3);
+  expect(candidates[0].candidateName).toBe('can1');
+  expect(candidates[1].candidateName).toBe('can2');
+  expect(candidates[2].candidateName).toBe('can3');
 
   const schedulePath = obj.res.headers.location;
   obj = await getAsync({
     path: schedulePath,
   })(obj);
   //doesNotMatchは、createScheduleInitialAsyncへの適用が前提
-  assert.match(obj.res.text, /testuser/);
-  assert.match(obj.res.text, />scheduleName2</);
-  assert.doesNotMatch(obj.res.text, />scheduleName1</);
-  assert.match(obj.res.text, />memo2</);
-  assert.doesNotMatch(obj.res.text, />memo1</);
-  assert.match(obj.res.text, />can1</);
-  assert.match(obj.res.text, />can2</);
-  assert.match(obj.res.text, />can3</);
+  expect(obj.res.text).toMatch(/testUser/);
+  expect(obj.res.text).toMatch(/>scheduleName2</);
+  expect(obj.res.text).not.toMatch(/>scheduleName1</);
+  expect(obj.res.text).not.toMatch(/>memo1</);
+  expect(obj.res.text).toMatch(/>memo2</);
+  expect(obj.res.text).toMatch(/>can1</);
+  expect(obj.res.text).toMatch(/>can2</);
+  expect(obj.res.text).toMatch(/>can3</);
 
   return obj;
 };
@@ -331,7 +311,7 @@ const deleteScheduleAsync = async (obj) => {
   obj = await getAsync({
     path: '/',
   })(obj);
-  assert.match(obj.res.text, new RegExp(scheduleId));
+  expect(obj.res.text).toMatch(new RegExp(scheduleId));
 
   obj = await getAsync({
     path: `/schedules/${scheduleId}/edit`,
@@ -346,23 +326,23 @@ const deleteScheduleAsync = async (obj) => {
   const p1 = Availability.findAll({
     where: { scheduleId: scheduleId },
   }).then((availabilities) => {
-    assert.strictEqual(availabilities.length, 0);
+    expect(availabilities.length).toBe(0);
     return;
   });
   const p2 = Candidate.findAll({ where: { scheduleId: scheduleId } }).then(
     (candidates) => {
-      assert.strictEqual(candidates.length, 0);
+      expect(candidates.length).toBe(0);
       return;
     }
   );
   const p3 = Comment.findAll({ where: { scheduleId: scheduleId } }).then(
     (comments) => {
-      assert.strictEqual(comments.length, 0);
+      expect(comments.length).toBe(0);
       return;
     }
   );
   const p4 = Schedule.findByPk(scheduleId).then((schedule) => {
-    assert.strictEqual(!!schedule, false);
+    expect(!!schedule).toBe(false);
     return;
   });
   await Promise.all([p1, p2, p3, p4]);
@@ -370,15 +350,188 @@ const deleteScheduleAsync = async (obj) => {
   obj = await getAsync({
     path: '/',
   })(obj);
-  assert.doesNotMatch(obj.res.text, new RegExp(scheduleId));
+  expect(obj.res.text).not.toMatch(new RegExp(scheduleId));
 
   return obj;
 };
 
+describe('getPostToolErrorHandling', () => {
+  const describeObj = new DescribeObj();
+  beforeAll(describeObj.fnBefore);
+  afterAll(describeObj.fnAfter);
+  afterEach(describeObj.fnAfterEach);
+  it('getAsync pathなしでError', () => {
+    return expect(getAsync()).rejects.toThrow('path');
+  });
+  it('postAsync pathなしでError', () => {
+    return expect(postAsync()).rejects.toThrow('path');
+  });
+  it('postAjaxAsync pathなしでError', () => {
+    return expect(postAjaxAsync()).rejects.toThrow('path');
+  });
+});
+describe('/:schedule/ ErrorHandling', () => {
+  const describeObj = new DescribeObj();
+  beforeAll(describeObj.fnBefore);
+  afterAll(describeObj.fnAfter);
+  afterEach(describeObj.fnAfterEach);
+
+  const getANDPostAsync = (data) =>
+    (async () => {
+      let obj = new ItObj();
+      obj = await getAsync({ path: '/schedules/new' })(obj);
+      return await postAsync({
+        path: '/schedules/',
+        data: data,
+      })(obj);
+    })();
+
+  it('get /schedules/new cookieなしで403', async () => {
+    let obj = new ItObj();
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    // const setCookie = obj.res.headers['set-cookie'];
+    const csrf = obj.res.text.match(/name="_csrf" value="(.*?)"/)[1];
+    if (!csrf) throw new Error('need to contain _csrf');
+    const resObj = request(app)
+      .post('/schedules/')
+      //cookieのsetなし .set('cookie', setCookie)
+      .send({ _csrf: csrf, scheduleName: 'a', memo: 'b', candidates: 'c' });
+    const res = await promisifyResEnd(resObj)();
+    return expect(res.status).toBe(403);
+  });
+  it('get /schedules/new _csrfなしで403', async () => {
+    let obj = new ItObj();
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    const setCookie = obj.res.headers['set-cookie'];
+    const csrf = obj.res.text.match(/name="_csrf" value="(.*?)"/)[1];
+    if (!csrf) throw new Error('need to contain _csrf');
+    const resObj = request(app)
+      .post('/schedules/')
+      .set('cookie', setCookie)
+      // _csrfなし
+      .send({ scheduleName: 'a', memo: 'b', candidates: 'c' });
+    const res = await promisifyResEnd(resObj)();
+    return expect(res.status).toBe(403);
+  });
+
+  //TODO: エラーコードは400(badRequest)が良いと思う
+  it('post /schedules scheduleNameのk-vがない場合は500', async () => {
+    let obj = new ItObj();
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    obj = await postAsync({
+      path: '/schedules/',
+      data: { memo: 'memo1' },
+    })(obj);
+    return expect(obj.res.status).toBe(500);
+  });
+
+  //TODO: エラーコードは400(badRequest)が良いと思う
+  it('post /schedules memoのk-vがない場合は500', async () => {
+    let obj = new ItObj();
+    obj = await getAsync({ path: '/schedules/new' })(obj);
+    obj = await postAsync({
+      path: '/schedules/',
+      data: { scheduleName: 'scheduleName1' },
+    })(obj);
+    return expect(obj.res.status).toBe(500);
+  });
+
+  //100000文字程度で413になった
+  it('post /schedules scheduleName,memoオーバーフロー対策(約50000文字まで確認)', async () => {
+    const data = [...Array(10).keys()].map((s) => s * 5000 + 5000);
+    const dataArray = data.map((d) => ({
+      scheduleName: 'a'.repeat(d),
+      memo: 'b'.repeat(d),
+    }));
+    for (const d of dataArray) {
+      const obj = await getANDPostAsync(d);
+      //データ量が多すぎると413エラーとなる(仕様でOKとする)
+      expect(obj.res.status.toString()).toMatch(/302|413/);
+    }
+  });
+
+  //TODO: 値に入るエスケープ文字はどうなるのか。もしsequelizeで対応不足ならば,明示的なサニタイズの追加を考える
+  it('post /schedules scheduleNameデータ', async () => {
+    const data = [
+      '',
+      'a',
+      ' a',
+      'a\na',
+      '\n',
+      '\n\n',
+      ' \n \n ',
+      '\t',
+      '\t\t',
+      ' \t \t ',
+      'a'.repeat(50000),
+    ];
+    const dataArray = data.map((d) => ({
+      scheduleName: d,
+      memo: 'b',
+      candidates: 'c',
+    }));
+    for (const d of dataArray) {
+      const obj = await getANDPostAsync(d);
+      //データ量が多すぎると413エラーとなる(仕様でOK)
+      expect(obj.res.status.toString()).toMatch(/302|413/);
+    }
+  });
+  it('post /schedules memoデータ', async () => {
+    const data = [
+      '',
+      'a',
+      ' a',
+      'a\na',
+      '\n',
+      '\n\n',
+      ' \n \n ',
+      '\t',
+      '\t\t',
+      ' \t \t ',
+      'a'.repeat(50000),
+    ];
+    const dataArray = data.map((d) => ({
+      scheduleName: 'a',
+      memo: d,
+      candidates: 'c',
+    }));
+    for (const d of dataArray) {
+      const obj = await getANDPostAsync(d);
+      //データ量が多すぎると413エラーとなる(仕様でOK)
+      expect(obj.res.status.toString()).toMatch(/302|413/);
+    }
+  });
+  it('post /schedules candidatesデータ', async () => {
+    const data = [
+      '',
+      'a',
+      ' a',
+      'a\na',
+      '\n',
+      '\n\n',
+      ' \n \n ',
+      '\t',
+      '\t\t',
+      ' \t \t ',
+      'a'.repeat(50000),
+    ];
+    const dataArray = data.map((d) => ({
+      scheduleName: 'a',
+      memo: 'b',
+      candidates: d,
+    }));
+    for (const d of dataArray) {
+      const obj = await getANDPostAsync(d);
+      //データ量が多すぎると413エラーとなる(仕様でOK)
+      expect(obj.res.status.toString()).toMatch(/302|413/);
+    }
+  });
+});
+
 describe('/schedules', () => {
   const describeObj = new DescribeObj();
-  before(describeObj.fnBefore);
-  after(describeObj.fnAfter);
+  beforeAll(describeObj.fnBefore);
+  afterAll(describeObj.fnAfter);
   afterEach(describeObj.fnAfterEach);
 
   it('createSchedule', (done) => {
@@ -402,8 +555,8 @@ describe('/schedules', () => {
 
 describe('/schedules/:scheduleId?edit=1', () => {
   const describeObj = new DescribeObj();
-  before(describeObj.fnBefore);
-  after(describeObj.fnAfter);
+  beforeAll(describeObj.fnBefore);
+  afterAll(describeObj.fnAfter);
   afterEach(describeObj.fnAfterEach);
 
   it('editSchedule', (done) => {
@@ -416,8 +569,8 @@ describe('/schedules/:scheduleId?edit=1', () => {
 
 describe('/schedules/:scheduleId?delete=1', () => {
   const describeObj = new DescribeObj();
-  before(describeObj.fnBefore);
-  after(describeObj.fnAfter);
+  beforeAll(describeObj.fnBefore);
+  afterAll(describeObj.fnAfter);
   afterEach(describeObj.fnAfterEach);
 
   it('deleteSchedule', (done) => {

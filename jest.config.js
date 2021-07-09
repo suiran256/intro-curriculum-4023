@@ -1,10 +1,7 @@
 module.exports = {
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|js?|tsx?|ts?)$',
+  roots: ['<rootDir>/test/'],
   transform: {
-    // "^.+\\.jsx?$": "babel-jest",
-    '^.+\\.mjs$': 'babel-jest',
+    '\\.[jt]sx?$': 'babel-jest',
+    '\\.mjs$': 'babel-jest',
   },
-  testPathIgnorePatterns: ['<rootDir>/build/', '<rootDir>/node_modules/'],
-  // moduleFileExtensions: ["js", "jsx", "mjs"]
-  moduleFileExtensions: ['js', 'mjs'],
 };

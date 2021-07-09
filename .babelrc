@@ -1,0 +1,36 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": {
+          "node": "current",
+          "ie": 11,
+          "safari": 9
+        },
+        "useBuiltIns": "usage",
+        "corejs": 3,
+        "modules": false
+      }
+    ]
+  ],
+  "env": {
+    /* ここから下がjest用の処理 */
+    "test": {
+      "presets": [
+        [
+          "@babel/preset-env",
+          {
+            "targets": {
+              // "node": "current"
+              "node": "14"
+            },
+            "useBuiltIns": "usage",
+            "corejs": "3.6",
+            "modules": "cjs"
+          }
+        ]
+      ]
+    }
+  }
+}

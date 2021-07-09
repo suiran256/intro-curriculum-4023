@@ -118,15 +118,12 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) =>
       return commentMap;
     };
 
-    const [
-      candidates,
-      { availabilityMapMap, userOtherMap },
-      commentMap,
-    ] = await Promise.all([
-      fetchCandidates(),
-      fetchAvailabilityMapMapANDUserMap(),
-      fetchCommentMap(),
-    ]);
+    const [candidates, { availabilityMapMap, userOtherMap }, commentMap] =
+      await Promise.all([
+        fetchCandidates(),
+        fetchAvailabilityMapMapANDUserMap(),
+        fetchCommentMap(),
+      ]);
     res.render('schedule', {
       user: req.user,
       schedule,

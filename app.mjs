@@ -16,6 +16,7 @@ import schedulesRouter from './routes/schedules.js';
 import availabilitiesRouter from './routes/availabilities.js';
 import commentsRouter from './routes/comments.js';
 import db from './models/index.js';
+
 const { User } = db;
 dotenvConfig();
 const {
@@ -24,7 +25,8 @@ const {
   GITHUB_CLIENT_SECRET,
   GITHUB_CALLBACK,
 } = process.env;
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+// const dirname = '/home/sui/workspace/intro-curriculum-4023/';
+const dirname = path.dirname(new URL(import.meta.url).pathname);
 const app = express();
 
 passport.serializeUser((user, done) => done(null, user));
@@ -43,14 +45,14 @@ passport.use(
   )
 );
 
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(dirname, 'views'));
 app.set('view engine', 'pug');
 app.use(logger('dev'));
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(dirname, 'public')));
 app.use(
   session({
     secret: SESSION_SECRET,
@@ -75,7 +77,7 @@ app.get(
   '/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/login' }),
   (req, res) => {
-    const loginFrom = req.cookies.loginFrom;
+    const { loginFrom } = req.cookies;
     if (
       loginFrom &&
       !loginFrom.includes('http://') &&
@@ -92,7 +94,8 @@ app.get(
 app.use((req, res, next) => next(createError(404, 'notFound')));
 /* eslint-disable-next-line no-unused-vars */
 app.use((err, req, res, next) => {
-  const message = err.message;
+  const { message } = err;
+  // const message=err.message
   const error = req.app.get('env') === 'development' ? err : {};
   res.status(err.status || 500);
   res.render('error', { message, error });
