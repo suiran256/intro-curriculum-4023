@@ -72,6 +72,16 @@ app.use('/schedules', availabilitiesRouter);
 app.use('/schedules', commentsRouter);
 app.use('/auth', authGithubRouter(passport));
 
+import cors from 'cors'
+app.get('/temp/:fileName',cors(),(req,res)=>{
+  const fileName=req.params.fileName||''
+  res.json({fileName})
+})
+app.get('/temp/:fileName',cors(),(req,res)=>{
+  const fileName=req.params.fileName
+  res.sendFile(path.join(dirname,`/public/img/${fileName}`))
+})
+
 app.use((req, res, next) => next(createError(404, 'notFound')));
 /* eslint-disable-next-line no-unused-vars */
 app.use((err, req, res, next) => {
