@@ -39,9 +39,6 @@ module.exports = (api) => {
           '@babel/preset-env',
           {
             targets: 'defaults',
-            targets: {
-              node: 'current',
-            },
             useBuiltIns: 'usage',
             corejs: '3.15',
             modules: 'cjs',

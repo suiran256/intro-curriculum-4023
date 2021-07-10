@@ -1,17 +1,18 @@
-'use strict';
 import $ from 'jquery';
-const global = Function('return this;')();
-global.jQuery = $;
-import bootstrap from 'bootstrap';
+// import bootstrap from 'bootstrap';
+import 'bootstrap';
 
-$('.availability-toggle-button')[0].forEach((e, i) => {
-  //$('.availability-toggle-button').each((i, e) => {
+// const global = Function('return this;')();
+// global.jQuery = $;
+
+[$('.availability-toggle-button').get(0)].forEach((e) => {
+  // $('.availability-toggle-button').each((i, e) => {
   const button = $(e);
   button.click(() => {
     const scheduleId = button.data('schedule-id');
     const userId = button.data('user-id');
     const candidateId = button.data('candidate-id');
-    const availability = parseInt(button.data('availability'));
+    const availability = parseInt(button.data('availability'), 10);
     const nextAvailability = (availability + 1) % 3;
     $.post(
       `/schedules/${scheduleId}/users/${userId}/candidates/${candidateId}`,
@@ -37,7 +38,7 @@ buttonSelfComment.click(() => {
   if (comment) {
     $.post(
       `/schedules/${scheduleId}/users/${userId}/comments`,
-      { comment: comment },
+      { comment },
       (data) => {
         $('#self-comment').text(data.comment);
       }

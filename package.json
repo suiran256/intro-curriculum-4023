@@ -3,14 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "startOld": "node ./bin/www",
     "start": "node ./bin/www.mjs",
     "test": "NODE_PATH=${npm_package_config_resolve} jest  --silent --verbose --config ./jest.config.js",
     "coverage": "NODE_PATH=${npm_package_config_resolve} jest --silent --coverage"
   },
   "jest": {},
   "dependencies": {
-    "babel-plugin-transform-import-meta": "^2.0.0",
     "bootstrap": "^4.0.0",
     "cheerio": "^1.0.0-rc.5",
     "cookie-parser": "~1.4.3",
@@ -24,7 +22,6 @@
     "http-errors": "~1.6.2",
     "jquery": "^3.4.1",
     "morgan": "~1.9.0",
-    "nodemailer": "^6.4.13",
     "passport": "^0.3.2",
     "passport-github2": "^0.1.9",
     "pg": "^8.5.1",
@@ -44,7 +41,7 @@
     "@babel/preset-env": "^7.1.6",
     "babel-jest": "^27.0.6",
     "babel-loader": "^8.0.4",
-    "babel-plugin-search-and-replace": "^1.1.0",
+    "babel-plugin-transform-import-meta": "^2.0.0",
     "eslint": "^7.13.0",
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "^6.15.0",
