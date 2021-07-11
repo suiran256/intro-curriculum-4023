@@ -3,32 +3,40 @@ import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Layout from './component/Layout.jsx';
 import Index from './page/Index.jsx';
 import Login from './page/Login.jsx';
+import { fetchDataIndex } from './hook/hookData.js';
 
 export default function App() {
   const [user, setUser] = useState({});
   const [schedules, setSchedules] = useState([]);
-  useEffect(() => {
-    if (!user.id) {
-      fetch('/auth/success')
-        .then((res) => res.json())
-        .then((obj) => {
-          if (obj.user && obj.user.id !== user.id) {
-            setUser(obj.user);
-          }
-        });
-    }
-  });
-  useEffect(() => {
-    setSchedules([
-      {
-        scheduleId: 'aaa',
-        scheduleName: 'scheduleName1',
-        memo: 'memo1',
-        createdBy: 1,
-        updatedAt: new Date(),
-      },
-    ]);
-  }, []);
+  // useEffect(() => {
+  //   fetchDataIndex().then(({ user: newUser, schedules: newSchedules }) => {
+  //     setUser(newUser);
+  //     setSchedules(newSchedules);
+  //   }, []);
+  // });
+  // useEffect(() => {
+  //   if (!user.id) {
+  //     // fetch('/auth/success')
+  //     fetchDataIndex()
+  //       .then((res) => res.json())
+  //       .then((obj) => {
+  //         if (obj.user && obj.user.id !== user.id) {
+  //           setUser(obj.user);
+  //         }
+  //       });
+  //   }
+  // });
+  // useEffect(() => {
+  //   setSchedules([
+  //     {
+  //       scheduleId: 'aaa',
+  //       scheduleName: 'scheduleName1',
+  //       memo: 'memo1',
+  //       createdBy: 1,
+  //       updatedAt: new Date(),
+  //     },
+  //   ]);
+  // }, []);
   // useEffect(() => {
   //   setUser({ id: 0, username: 'testUser' });
   // }, []);
