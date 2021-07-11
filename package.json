@@ -9,8 +9,8 @@
     "client": "webpack serve --config ./webpack.config.dev.js",
     "build": "webpack --config ./webpack.config.common.js --mode production",
     "server": "nodemon ./bin/www.mjs  --exec babel-node",
-    "dev": "concurrently \"npm run client\" \"npm run server\"",
-    "start": "npm run build && node ./bin/www.mjs"
+    "dev": "FRONT_URL=http://localhost:8080 concurrently \"npm run client\" \"npm run server\"",
+    "start": "FRONT_URL=/ npm run build && FRONT_URL=/ node ./bin/www.mjs"
   },
   "jest": {},
   "dependencies": {

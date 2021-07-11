@@ -25,6 +25,7 @@ const {
   GITHUB_CLIENT_ID,
   GITHUB_CLIENT_SECRET,
   GITHUB_CALLBACK,
+  FRONT_URL,
 } = process.env;
 const { User } = db;
 const app = express();

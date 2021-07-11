@@ -3,6 +3,7 @@ import express from 'express';
 
 export default function authGithub(passport) {
   const router = express.Router();
+  const { FRONT_URL } = process.env;
 
   router.get(
     '/github',
@@ -25,7 +26,7 @@ export default function authGithub(passport) {
       // }
 
       // res.redirect('http://localhost:8080/');
-      res.redirect('/');
+      res.redirect(FRONT_URL);
     }
   );
   return router;
