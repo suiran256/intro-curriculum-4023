@@ -9,12 +9,12 @@ import helmet from 'helmet';
 import session from 'express-session';
 import passport from 'passport';
 import { Strategy as GithubStrategy } from 'passport-github2';
-import indexRouter from './routes/index.js';
+// import indexRouter from './routes/index.js';
 import loginRouter from './routes/login.js';
 import logoutRouter from './routes/logout.js';
-import schedulesRouter from './routes/schedules.js';
-import availabilitiesRouter from './routes/availabilities.js';
-import commentsRouter from './routes/comments.js';
+// import schedulesRouter from './routes/schedules.js';
+// import availabilitiesRouter from './routes/availabilities.js';
+// import commentsRouter from './routes/comments.js';
 import authGithubRouter from './routes/authGithub.mjs';
 import db from './models/index.js';
 
@@ -65,12 +65,12 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/', indexRouter);
+// app.use('/', indexRouter);
 app.use('/login', loginRouter);
 app.use('/logout', logoutRouter);
-app.use('/schedules', schedulesRouter);
-app.use('/schedules', availabilitiesRouter);
-app.use('/schedules', commentsRouter);
+// app.use('/schedules', schedulesRouter);
+// app.use('/schedules', availabilitiesRouter);
+// app.use('/schedules', commentsRouter);
 app.use('/auth', authGithubRouter(passport));
 
 app.get('/auth/success', (req, res, next) => {

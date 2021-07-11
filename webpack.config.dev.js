@@ -22,11 +22,16 @@ module.exports = merge(webpackConfig, {
     clientLogLevel: 'warning',
     hot: true,
     proxy: {
-      '/auth/*': {
-        target: 'http://localhost:3000',
-        secure: false,
-        logLevel: 'debug',
-      },
+      context: ['/auth', '/logout', '/login'],
+      target: 'http://localhost:3000',
+      secure: false,
+      logLevel: 'debug',
+
+      // '/auth/**': {
+      //   target: 'http://localhost:3000',
+      //   secure: false,
+      //   logLevel: 'debug',
+      // },
     },
   },
 });
