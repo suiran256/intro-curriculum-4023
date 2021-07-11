@@ -52,7 +52,8 @@ app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static(path.join(dirname, 'public')));
+// app.use(express.static(path.join(dirname, 'public')));
+app.use(express.static(path.join(dirname, 'dist')));
 app.use(
   session({
     secret: SESSION_SECRET,
@@ -70,6 +71,10 @@ app.use('/schedules', schedulesRouter);
 app.use('/schedules', availabilitiesRouter);
 app.use('/schedules', commentsRouter);
 app.use('/auth', authGithubRouter(passport));
+
+app.get('/auth/success', (req, res, next) => {
+  res.json({ user: req.user });
+});
 
 app.use((req, res, next) => next(createError(404, 'notFound')));
 /* eslint-disable-next-line no-unused-vars */

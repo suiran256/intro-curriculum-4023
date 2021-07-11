@@ -68,7 +68,7 @@ module.exports = {
         extensions: ['.jsx', '.tsx'],
       },
     ],
-    // 'react/prop-types': false,
+    'react/prop-types': false,
     'react/react-in-jsx-scope': 'off',
   },
   overrides: [

@@ -3,9 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www.mjs",
+    "startOld": "node ./bin/www.mjs",
     "test": "NODE_PATH=${npm_package_config_resolve} jest  --silent --verbose --config ./jest.config.js",
-    "coverage": "NODE_PATH=${npm_package_config_resolve} jest --silent --coverage"
+    "coverage": "NODE_PATH=${npm_package_config_resolve} jest --silent --coverage",
+    "client": "webpack serve --config ./webpack.config.dev.js",
+    "build": "webpack --config ./webpack.config.common.js --mode production",
+    "server": "nodemon ./bin/www.mjs  --exec babel-node",
+    "dev": "concurrently \"npm run client\" \"npm run server\"",
+    "start": "npm run build && node ./bin/www.mjs"
   },
   "jest": {},
   "dependencies": {
@@ -30,6 +35,8 @@
     "pug": "^3.0.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "react-router": "^5.2.0",
+    "react-router-dom": "^5.2.0",
     "sequelize": "^6.6.5",
     "sequelize-cli": "^6.2.0",
     "util": "^0.12.4",
@@ -39,9 +46,11 @@
     "@babel/core": "^7.14.6",
     "@babel/node": "^7.14.7",
     "@babel/preset-env": "^7.14.7",
+    "@babel/preset-react": "^7.14.5",
     "babel-jest": "^27.0.6",
     "babel-loader": "^8.2.2",
     "babel-plugin-transform-import-meta": "^2.0.0",
+    "concurrently": "^6.2.0",
     "eslint": "^7.30.0",
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "^8.3.0",
@@ -50,11 +59,15 @@
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-react": "^7.24.0",
     "eslint-plugin-react-hooks": "^4.2.0",
+    "html-webpack-plugin": "^5.3.2",
     "jest": "^27.0.6",
+    "nodemon": "^2.0.12",
     "passport-stub": "^1.1.1",
     "prettier": "^2.3.2",
     "supertest": "^6.1.3",
     "webpack": "^5.44.0",
-    "webpack-cli": "^4.7.2"
+    "webpack-cli": "^4.7.2",
+    "webpack-dev-server": "^3.11.2",
+    "webpack-merge": "^5.8.0"
   }
 }

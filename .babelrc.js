@@ -8,13 +8,13 @@ module.exports = (api) => {
           {
             targets: {
               node: 'current',
-              // "node": "14"
             },
             useBuiltIns: 'usage',
             corejs: '3.15',
             modules: 'cjs',
           },
         ],
+        '@babel/preset-react',
       ],
       plugins: [
         'babel-plugin-transform-import-meta',
@@ -41,9 +41,10 @@ module.exports = (api) => {
             targets: 'defaults',
             useBuiltIns: 'usage',
             corejs: '3.15',
-            modules: 'cjs',
+            // modules: 'cjs',
           },
         ],
+        '@babel/preset-react',
       ],
       // plugins: [],
     };

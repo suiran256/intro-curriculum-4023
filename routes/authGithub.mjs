@@ -12,17 +12,20 @@ export default function authGithub(passport) {
     '/github/callback',
     passport.authenticate('github', { failureRedirect: '/login' }),
     (req, res) => {
-      const { loginFrom } = req.cookies;
-      if (
-        loginFrom &&
-        !loginFrom.includes('http://') &&
-        !loginFrom.includes('https://')
-      ) {
-        res.clearCookie('loginFrom');
-        res.redirect(loginFrom);
-      } else {
-        res.redirect('/');
-      }
+      // const { loginFrom } = req.cookies;
+      // if (
+      //   loginFrom &&
+      //   !loginFrom.includes('http://') &&
+      //   !loginFrom.includes('https://')
+      // ) {
+      //   res.clearCookie('loginFrom');
+      //   res.redirect(loginFrom);
+      // } else {
+      //   res.redirect('/');
+      // }
+
+      // res.redirect('http://localhost:8080/');
+      res.redirect('/');
     }
   );
   return router;
