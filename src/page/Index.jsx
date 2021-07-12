@@ -1,11 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import moment from 'moment-timezone';
+import { fetchDataIndex } from '../hook/hookData.js';
 
 function formatDate(date) {
   return moment(date).tz('Asia/Tokyo').format('YYYY/MM/DD HH:mm');
 }
-export default function Index({ user, schedules }) {
-  const username = user.id ? user.username : '(notLogin)';
+export default function Index({ userId, user, schedules }) {
+  useEffect(() => {
+    return (async () => {
+      fetchDataIndex().then((obj) => {
+        if (userId !== obj.user.userId) {
+          setUserId(obj.user.userId);
+        }
+        setUser(obj.user);
+        setSchedules(obj.schedules);
+      });
+    })().catch(console.log);
+  }, [userId]);
+  const username = userId ? user.username : '(notLogin)';
   const Header = () => (
     <header className="jumbotron my-3">
       <hgroup>
@@ -46,7 +58,7 @@ export default function Index({ user, schedules }) {
   return (
     <React.Fragment>
       <Header />
-      {user.id ? (
+      {userId ? (
         <React.Fragment>
           <Button />
           <ScheduleRows />

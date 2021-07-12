@@ -6,7 +6,7 @@ export default function Login() {
   };
   return (
     <React.Fragment>
-      <button type="button" class="btn btn-info my-3" onClick={handleClick}>
+      <button type="button" className="btn btn-info my-3" onClick={handleClick}>
         login
       </button>
     </React.Fragment>

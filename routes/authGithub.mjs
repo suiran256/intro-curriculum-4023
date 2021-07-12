@@ -1,5 +1,6 @@
 /* eslint no-unused-vars: 2 */
 import express from 'express';
+import path from 'path';
 
 export default function authGithub(passport) {
   const router = express.Router();
@@ -26,7 +27,7 @@ export default function authGithub(passport) {
       // }
 
       // res.redirect('http://localhost:8080/');
-      res.redirect(FRONT_URL);
+      res.redirect('http://localhost:8080/success');
       // res.redirect('/');
     }
   );
