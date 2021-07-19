@@ -19339,14 +19339,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // import bootstrap from 'bootstrap';
 // const global = Function('return this;')();
 // global.jQuery = $;
-[(0, _jquery.default)('.availability-toggle-button').get(0)].forEach(function (e) {
+(0, _jquery.default)('.availability-toggle-button').get().forEach(function (e) {
   // $('.availability-toggle-button').each((i, e) => {
   var button = (0, _jquery.default)(e);
   button.click(function () {
     var scheduleId = button.data('schedule-id');
     var userId = button.data('user-id');
     var candidateId = button.data('candidate-id');
-    var availability = parseInt(button.data('availability'));
+    var availability = parseInt(button.data('availability'), 10);
     var nextAvailability = (availability + 1) % 3;
 
     _jquery.default.post("/schedules/".concat(scheduleId, "/users/").concat(userId, "/candidates/").concat(candidateId), {
