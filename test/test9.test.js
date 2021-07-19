@@ -7,9 +7,10 @@ import cheerio from 'cheerio';
 import app from '../app.mjs';
 import schedulesRouter from '../routes/schedules.js';
 import db from '../models/index.js';
+
 const { deleteScheduleAggregate } = schedulesRouter;
 const { User, Schedule, Candidate, Availability, Comment, sequelize } = db;
- 
+
 function promisifyResEnd(resObj) {
   return util.promisify(resObj.end).bind(resObj);
 }
@@ -72,7 +73,7 @@ DescribeObj.prototype.clearScheduleIdStack = function () {
   this.scheduleId = null;
   this.scheduleIdStack = [];
 };
-//scheduleId:最近に追加されたもの
+// scheduleId:最近に追加されたもの
 DescribeObj.prototype.getScheduleId = function () {
   if (!this.scheduleId) throw new Error('need scheduleId in obj');
   return this.scheduleId;
@@ -151,7 +152,7 @@ const createScheduleInitialAsync = async (obj) => {
   expect(schedule.scheduleName).toBe('scheduleName1');
   expect(schedule.memo).toBe('memo1');
   const candidates = await Candidate.findAll({
-    where: { scheduleId: scheduleId },
+    where: { scheduleId },
     order: [['"candidateId"', 'ASC']],
   });
   expect(candidates.length).toBe(1);
@@ -168,11 +169,11 @@ const createScheduleInitialAsync = async (obj) => {
   return obj;
 };
 
-//createScheduleInitial後の状態を前提
+// createScheduleInitial後の状態を前提
 const updateAvailabilityAsync = async (obj) => {
   const scheduleId = obj.getScheduleId();
   const candidate = await Candidate.findOne({
-    where: { scheduleId: scheduleId },
+    where: { scheduleId },
     order: [['"candidateId"', 'ASC']],
   });
   // expect(
@@ -235,7 +236,7 @@ const updateCommentAsync = async (obj) => {
   })(obj);
   expect(obj.res.text).toBe('{"status":"OK","comment":"commentA"}');
   const comments1 = await Comment.findAll({
-    where: { scheduleId: scheduleId },
+    where: { scheduleId },
   });
   expect(comments1.length).toBe(1);
   expect(comments1[0].comment).toBe('commentA');
@@ -246,7 +247,7 @@ const updateCommentAsync = async (obj) => {
   })(obj);
   expect(obj.res.text).toBe('{"status":"OK","comment":"commentB"}');
   const comments2 = await Comment.findAll({
-    where: { scheduleId: scheduleId },
+    where: { scheduleId },
   });
   expect(comments2.length).toBe(1);
   expect(comments2[0].comment).toBe('commentB');
@@ -280,7 +281,7 @@ const editScheduleAsync = async (obj) => {
   expect(schedule.scheduleName).toBe('scheduleName2');
   expect(schedule.memo).toBe('memo2');
   const candidates = await Candidate.findAll({
-    where: { scheduleId: scheduleId },
+    where: { scheduleId },
     order: [['"candidateId"', 'ASC']],
   });
   expect(candidates.length).toBe(3);
@@ -292,7 +293,7 @@ const editScheduleAsync = async (obj) => {
   obj = await getAsync({
     path: schedulePath,
   })(obj);
-  //doesNotMatchは、createScheduleInitialAsyncへの適用が前提
+  // doesNotMatchは、createScheduleInitialAsyncへの適用が前提
   expect(obj.res.text).toMatch(/testUser/);
   expect(obj.res.text).toMatch(/>scheduleName2</);
   expect(obj.res.text).not.toMatch(/>scheduleName1</);
@@ -318,32 +319,24 @@ const deleteScheduleAsync = async (obj) => {
   })(obj);
   obj = await postAsync({
     path: `/schedules/${scheduleId}?delete=1`,
-    //data: {},
+    // data: {},
   })(obj);
 
   obj.removeScheduleId(scheduleId);
 
   const p1 = Availability.findAll({
-    where: { scheduleId: scheduleId },
+    where: { scheduleId },
   }).then((availabilities) => {
     expect(availabilities.length).toBe(0);
-    return;
   });
-  const p2 = Candidate.findAll({ where: { scheduleId: scheduleId } }).then(
-    (candidates) => {
-      expect(candidates.length).toBe(0);
-      return;
-    }
-  );
-  const p3 = Comment.findAll({ where: { scheduleId: scheduleId } }).then(
-    (comments) => {
-      expect(comments.length).toBe(0);
-      return;
-    }
-  );
+  const p2 = Candidate.findAll({ where: { scheduleId } }).then((candidates) => {
+    expect(candidates.length).toBe(0);
+  });
+  const p3 = Comment.findAll({ where: { scheduleId } }).then((comments) => {
+    expect(comments.length).toBe(0);
+  });
   const p4 = Schedule.findByPk(scheduleId).then((schedule) => {
     expect(!!schedule).toBe(false);
-    return;
   });
   await Promise.all([p1, p2, p3, p4]);
 
@@ -382,7 +375,7 @@ describe('/:schedule/ ErrorHandling', () => {
       obj = await getAsync({ path: '/schedules/new' })(obj);
       return await postAsync({
         path: '/schedules/',
-        data: data,
+        data,
       })(obj);
     })();
 
@@ -394,7 +387,7 @@ describe('/:schedule/ ErrorHandling', () => {
     if (!csrf) throw new Error('need to contain _csrf');
     const resObj = request(app)
       .post('/schedules/')
-      //cookieのsetなし .set('cookie', setCookie)
+      // cookieのsetなし .set('cookie', setCookie)
       .send({ _csrf: csrf, scheduleName: 'a', memo: 'b', candidates: 'c' });
     const res = await promisifyResEnd(resObj)();
     return expect(res.status).toBe(403);
@@ -414,7 +407,7 @@ describe('/:schedule/ ErrorHandling', () => {
     return expect(res.status).toBe(403);
   });
 
-  //TODO: エラーコードは400(badRequest)が良いと思う
+  // TODO: エラーコードは400(badRequest)が良いと思う
   it('post /schedules scheduleNameのk-vがない場合は500', async () => {
     let obj = new ItObj();
     obj = await getAsync({ path: '/schedules/new' })(obj);
@@ -425,7 +418,7 @@ describe('/:schedule/ ErrorHandling', () => {
     return expect(obj.res.status).toBe(500);
   });
 
-  //TODO: エラーコードは400(badRequest)が良いと思う
+  // TODO: エラーコードは400(badRequest)が良いと思う
   it('post /schedules memoのk-vがない場合は500', async () => {
     let obj = new ItObj();
     obj = await getAsync({ path: '/schedules/new' })(obj);
@@ -436,7 +429,7 @@ describe('/:schedule/ ErrorHandling', () => {
     return expect(obj.res.status).toBe(500);
   });
 
-  //100000文字程度で413になった
+  // 100000文字程度で413になった
   it('post /schedules scheduleName,memoオーバーフロー対策(約50000文字まで確認)', async () => {
     const data = [...Array(10).keys()].map((s) => s * 5000 + 5000);
     const dataArray = data.map((d) => ({
@@ -445,12 +438,12 @@ describe('/:schedule/ ErrorHandling', () => {
     }));
     for (const d of dataArray) {
       const obj = await getANDPostAsync(d);
-      //データ量が多すぎると413エラーとなる(仕様でOKとする)
+      // データ量が多すぎると413エラーとなる(仕様でOKとする)
       expect(obj.res.status.toString()).toMatch(/302|413/);
     }
   });
 
-  //TODO: 値に入るエスケープ文字はどうなるのか。もしsequelizeで対応不足ならば,明示的なサニタイズの追加を考える
+  // TODO: 値に入るエスケープ文字はどうなるのか。もしsequelizeで対応不足ならば,明示的なサニタイズの追加を考える
   it('post /schedules scheduleNameデータ', async () => {
     const data = [
       '',
@@ -472,7 +465,7 @@ describe('/:schedule/ ErrorHandling', () => {
     }));
     for (const d of dataArray) {
       const obj = await getANDPostAsync(d);
-      //データ量が多すぎると413エラーとなる(仕様でOK)
+      // データ量が多すぎると413エラーとなる(仕様でOK)
       expect(obj.res.status.toString()).toMatch(/302|413/);
     }
   });
@@ -497,7 +490,7 @@ describe('/:schedule/ ErrorHandling', () => {
     }));
     for (const d of dataArray) {
       const obj = await getANDPostAsync(d);
-      //データ量が多すぎると413エラーとなる(仕様でOK)
+      // データ量が多すぎると413エラーとなる(仕様でOK)
       expect(obj.res.status.toString()).toMatch(/302|413/);
     }
   });
@@ -522,7 +515,7 @@ describe('/:schedule/ ErrorHandling', () => {
     }));
     for (const d of dataArray) {
       const obj = await getANDPostAsync(d);
-      //データ量が多すぎると413エラーとなる(仕様でOK)
+      // データ量が多すぎると413エラーとなる(仕様でOK)
       expect(obj.res.status.toString()).toMatch(/302|413/);
     }
   });

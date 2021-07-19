@@ -1,11 +1,11 @@
 //* eslint-disable no-unused-vars */
-'use strict';
 
 const authenticationEnsurer = require('./authentication-ensurer');
 const csrfProtection = require('csurf')({ cookie: true });
 const express = require('express');
 
 const createError = require('http-errors');
+
 const router = express.Router();
 const uuid = require('uuid');
 
@@ -74,7 +74,7 @@ router.post('/', authenticationEnsurer, csrfProtection, (req, res, next) => {
 
 router.get('/:scheduleId', authenticationEnsurer, (req, res, next) =>
   (async () => {
-    const scheduleId = req.params.scheduleId;
+    const { scheduleId } = req.params;
     const userIdMe = Number(req.user.id);
     const userMe = { userId: userIdMe, username: req.user.username };
 
@@ -97,9 +97,22 @@ router.get('/:scheduleId', authenticationEnsurer, (req, res, next) =>
         order: [[User, '"username"', 'ASC']],
       });
 
+      // const { availabilityMapMap, userMapWork } = availabilities.reduce(
+      //   (acc, a) => {
+      //     const map = acc.availabilityMapMap.get(a.userId) || new Map();
+      //     map.set(a.candidateId, a.availability);
+      //     acc.availabilityMapMap.set(a.userId, map);
+
+      //     acc.userMapWork.set(a.userId, a.User);
+
+      //     return acc;
+      //   },
+      //   { availabilityMapMap: new Map(), userMapWork: new Map() }
+      // );
+
       availabilities.forEach((a) => {
-        const userId = a.userId;
-        const candidateId = a.candidateId;
+        const { userId } = a;
+        const { candidateId } = a;
         const map = availabilityMapMap.get(userId) || new Map();
         map.set(candidateId, a.availability);
         availabilityMapMap.set(userId, map);
@@ -142,7 +155,7 @@ router.get(
   csrfProtection,
   (req, res, next) =>
     (async () => {
-      const scheduleId = req.params.scheduleId;
+      const { scheduleId } = req.params;
       const schedule = await Schedule.findByPk(scheduleId, {
         include: { model: User, attributes: ['userId', 'username'] },
       });
@@ -167,7 +180,7 @@ router.post(
   csrfProtection,
   (req, res, next) =>
     (async () => {
-      const scheduleId = req.params.scheduleId;
+      const { scheduleId } = req.params;
       const schedule = await Schedule.findByPk(scheduleId, {
         include: { model: User, attributes: ['userId', 'username'] },
       });
@@ -189,11 +202,11 @@ router.post(
       };
       if (Number(req.query.edit) === 1) {
         return fetchEdit().catch(next);
-      } else if (Number(req.query.delete) === 1) {
-        return fetchDelete().catch(next);
-      } else {
-        return next(createError(400, 'badRequest'));
       }
+      if (Number(req.query.delete) === 1) {
+        return fetchDelete().catch(next);
+      }
+      return next(createError(400, 'badRequest'));
     })().catch(next)
 );
 
